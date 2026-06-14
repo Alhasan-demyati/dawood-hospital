@@ -1,0 +1,155 @@
+{
+  "name": "log_conversation_turn",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "log-conversation-turn",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node0",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "log-conversation-turn-wh"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var req=$input.first().json; var headers=(req && req.headers)||{};\nvar got=headers['x-auth-secret']||headers['X-Auth-Secret'];\nvar expected=$env.N8N_SHARED_SECRET;\nif(!expected || got!==expected){ return [{json:{ok:false,data:null,error_code:'AUTH_REJECTED',message_for_agent:null,meta:{version:'v1'}}}]; }\nvar body=(req && req.body)||{};\nreturn [{json: Object.assign({}, body, {_headers:headers, _t0: Date.now()})}];"
+      },
+      "id": "node1",
+      "name": "Auth Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nif(!inp.conversation_id||inp.turn_index===undefined||inp.turn_index===null||!inp.speaker) return [{json:{ok:false,data:null,error_code:'MISSING_INPUT',message_for_agent:'conversation_id, turn_index and speaker are required.',meta:{version:'v1'}}}]; return [{json:inp}];"
+      },
+      "id": "node2",
+      "name": "Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nif(inp.ok===false) return [{json:inp}];\nvar base=$env.SUPABASE_URL, key=$env.SUPABASE_SERVICE_ROLE_KEY, helpers=this.helpers; var Hget={apikey:key,Authorization:'Bearer '+key}; var Hjson={apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'};\nvar ex=[]; try{ ex=await helpers.httpRequest({method:'GET',url:base+'/rest/v1/turns?conversation_id=eq.'+inp.conversation_id+'&turn_index=eq.'+encodeURIComponent(inp.turn_index)+'&select=id&limit=1',headers:Hget,json:true}); }catch(e){}\nif(Array.isArray(ex)&&ex.length){ return [{json:{_result:{turn_id:ex[0].id},_t0:inp._t0}}]; }\nvar tbody={conversation_id:inp.conversation_id,turn_index:inp.turn_index,speaker:inp.speaker,text_raw:(inp.text_raw||null),language:(inp.language||null)};\nvar tins=await helpers.httpRequest({method:'POST',url:base+'/rest/v1/turns',headers:Object.assign({},Hjson,{Prefer:'return=representation'}),body:tbody,json:true});\nvar t=Array.isArray(tins)?tins[0]:tins;\nreturn [{json:{_result:{turn_id:(t&&t.id)||null},_t0:inp._t0}}];"
+      },
+      "id": "node3",
+      "name": "Upsert Turn",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp.ok===false) return [{json:{ok:false,data:null,message_for_agent:inp.message_for_agent||null,error_code:inp.error_code,meta:{version:'v1'}}}]; return [{json:{ok:true,data:inp._result,message_for_agent: inp._msg||null,error_code:null,meta:{version:'v1',duration_ms: inp._t0?(Date.now()-inp._t0):null}}}];"
+      },
+      "id": "node4",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "node5",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Auth Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth Check": {
+      "main": [
+        [
+          {
+            "node": "Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate": {
+      "main": [
+        [
+          {
+            "node": "Upsert Turn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Turn": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

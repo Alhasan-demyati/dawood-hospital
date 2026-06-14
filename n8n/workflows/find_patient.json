@@ -1,0 +1,155 @@
+{
+  "name": "find_patient",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "find-patient",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node0",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "find-patient-wh"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var req=$input.first().json; var headers=(req && req.headers)||{};\nvar got=headers['x-auth-secret']||headers['X-Auth-Secret'];\nvar expected=$env.N8N_SHARED_SECRET;\nif(!expected || got!==expected){ return [{json:{ok:false,data:null,error_code:'AUTH_REJECTED',message_for_agent:null,meta:{version:'v1'}}}]; }\nvar body=(req && req.body)||{};\nreturn [{json: Object.assign({}, body, {_headers:headers, _t0: Date.now()})}];"
+      },
+      "id": "node1",
+      "name": "Auth Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function isPlaceholder(s){ if(typeof s!=='string') return false; return /USER_.*_PLACEHOLDER|PLACEHOLDER|YOUR_.*|<<.*>>|\\{\\{.*\\}\\}/i.test(s) || /^[A-Z_]{8,}$/.test(s); }\nvar inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nvar hasMrn=!!inp.mrn, hasRef=!!inp.booking_reference, hasNameDob=!!(inp.name&&inp.dob); if(!hasMrn&&!hasRef&&!hasNameDob) return [{json:{ok:false,data:null,error_code:'MISSING_IDENTIFIER',message_for_agent:'Ask for the MRN, the booking reference, or the full name with date of birth.',meta:{version:'v1'}}}]; var chk=['mrn','booking_reference','name']; for(var i=0;i<chk.length;i++){ if(inp[chk[i]] && isPlaceholder(String(inp[chk[i]]))) return [{json:{ok:false,data:null,error_code:'PLACEHOLDER_DETECTED',message_for_agent:'Re-extract the actual identifier from the caller.',meta:{version:'v1'}}}]; } return [{json:inp}];"
+      },
+      "id": "node2",
+      "name": "Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nif(inp.ok===false) return [{json:inp}];\nvar base=$env.SUPABASE_URL, key=$env.SUPABASE_SERVICE_ROLE_KEY, helpers=this.helpers; var Hget={apikey:key,Authorization:'Bearer '+key}; var Hjson={apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'};\nfunction dispAr(d){try{return new Intl.DateTimeFormat('ar-JO',{timeZone:'Asia/Amman',weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'numeric',minute:'2-digit'}).format(d);}catch(e){return d.toISOString();}} function dispEn(d){try{return new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Amman',weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'numeric',minute:'2-digit'}).format(d);}catch(e){return d.toISOString();}}\nvar url=null;\nif(inp.mrn){ url=base+'/rest/v1/patients?mrn=eq.'+encodeURIComponent(inp.mrn)+'&select=id,first_name,last_name,dob,language,is_minor&limit=1'; }\nelse if(inp.booking_reference){ var vr=[]; try{ vr=await helpers.httpRequest({method:'GET',url:base+'/rest/v1/visits?booking_reference=eq.'+encodeURIComponent(inp.booking_reference)+'&select=patient_id&limit=1',headers:Hget,json:true}); }catch(e){} if(Array.isArray(vr)&&vr.length){ url=base+'/rest/v1/patients?id=eq.'+vr[0].patient_id+'&select=id,first_name,last_name,dob,language,is_minor&limit=1'; } }\nelse { var nm=encodeURIComponent('*'+String(inp.name).trim()+'*'); url=base+'/rest/v1/patients?dob=eq.'+encodeURIComponent(inp.dob)+'&or=(first_name.ilike.'+nm+',last_name.ilike.'+nm+')&select=id,first_name,last_name,dob,language,is_minor&limit=1'; }\nvar pr=[]; if(url){ try{ pr=await helpers.httpRequest({method:'GET',url:url,headers:Hget,json:true}); }catch(e){ pr=[]; } }\nif(!Array.isArray(pr)||pr.length===0){ return [{json:{_result:{found:false,patient:null,recent_visits:[]},_t0:inp._t0}}]; }\nvar p=pr[0]; var rv=[]; try{ rv=await helpers.httpRequest({method:'GET',url:base+'/rest/v1/visits?patient_id=eq.'+p.id+'&select=id,booking_reference,scheduled_start,status,specialties(name_ar)&order=scheduled_start.desc&limit=3',headers:Hget,json:true}); }catch(e){}\nvar recent=(Array.isArray(rv)?rv:[]).map(function(v){var d=new Date(v.scheduled_start);return {visit_id:v.id,booking_reference:v.booking_reference,status:v.status,specialty_name_ar:(v.specialties&&v.specialties.name_ar)||null,scheduled_start:v.scheduled_start,scheduled_start_display_ar:dispAr(d),scheduled_start_display_en:dispEn(d)};});\nreturn [{json:{_result:{found:true,patient:p,recent_visits:recent},_t0:inp._t0}}];"
+      },
+      "id": "node3",
+      "name": "Lookup Patient",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp.ok===false) return [{json:{ok:false,data:null,message_for_agent:inp.message_for_agent||null,error_code:inp.error_code,meta:{version:'v1'}}}]; return [{json:{ok:true,data:inp._result,message_for_agent: inp._msg||null,error_code:null,meta:{version:'v1',duration_ms: inp._t0?(Date.now()-inp._t0):null}}}];"
+      },
+      "id": "node4",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "node5",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Auth Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth Check": {
+      "main": [
+        [
+          {
+            "node": "Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate": {
+      "main": [
+        [
+          {
+            "node": "Lookup Patient",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Patient": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

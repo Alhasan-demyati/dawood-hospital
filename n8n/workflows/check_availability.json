@@ -1,0 +1,155 @@
+{
+  "name": "check_availability",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "check-availability",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node0",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "check-availability-wh"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var req=$input.first().json; var headers=(req && req.headers)||{};\nvar got=headers['x-auth-secret']||headers['X-Auth-Secret'];\nvar expected=$env.N8N_SHARED_SECRET;\nif(!expected || got!==expected){ return [{json:{ok:false,data:null,error_code:'AUTH_REJECTED',message_for_agent:null,meta:{version:'v1'}}}]; }\nvar body=(req && req.body)||{};\nreturn [{json: Object.assign({}, body, {_headers:headers, _t0: Date.now()})}];"
+      },
+      "id": "node1",
+      "name": "Auth Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nif(!(inp.specialty_id||inp.specialty)) return [{json:{ok:false,data:null,error_code:'MISSING_INPUT',message_for_agent:'Ask which clinic to check.',meta:{version:'v1'}}}]; if(!inp.from_date||!inp.to_date) return [{json:{ok:false,data:null,error_code:'MISSING_INPUT',message_for_agent:'Ask for a preferred date range.',meta:{version:'v1'}}}]; return [{json:inp}];"
+      },
+      "id": "node2",
+      "name": "Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nif(inp.ok===false) return [{json:inp}];\nvar base=$env.SUPABASE_URL, key=$env.SUPABASE_SERVICE_ROLE_KEY, helpers=this.helpers; var Hget={apikey:key,Authorization:'Bearer '+key}; var Hjson={apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'};\nfunction dispAr(d){try{return new Intl.DateTimeFormat('ar-JO',{timeZone:'Asia/Amman',weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'numeric',minute:'2-digit'}).format(d);}catch(e){return d.toISOString();}} function dispEn(d){try{return new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Amman',weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'numeric',minute:'2-digit'}).format(d);}catch(e){return d.toISOString();}}\nvar raw=String((inp.specialty_id||inp.specialty)).trim(); var uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i; var q=uuid.test(raw)?('id=eq.'+raw):('or=(code.eq.'+encodeURIComponent(raw)+',name_ar.eq.'+encodeURIComponent(raw)+')');\nvar sp=[]; try{ sp=await helpers.httpRequest({method:'GET',url:base+'/rest/v1/specialties?'+q+'&select=id,code&limit=1',headers:Hget,json:true}); }catch(e){}\nif(!Array.isArray(sp)||sp.length===0) return [{json:{ok:false,data:null,error_code:'SPECIALTY_NOT_FOUND',message_for_agent:'Could not resolve the clinic; ask the caller to pick one.',meta:{version:'v1'}}}];\nvar specialty_id=sp[0].id;\nvar facility_id=null; try{ var f=await helpers.httpRequest({method:'GET',url:base+'/rest/v1/facilities?code=eq.dawood_main&select=id&limit=1',headers:Hget,json:true}); if(Array.isArray(f)&&f.length) facility_id=f[0].id; }catch(e){}\nvar tpl=[]; try{ tpl=await helpers.httpRequest({method:'GET',url:base+'/rest/v1/slot_templates?specialty_id=eq.'+specialty_id+'&select=day_of_week,start_time,end_time,rooms',headers:Hget,json:true}); }catch(e){ tpl=[]; }\nvar from=new Date(inp.from_date), to=new Date(inp.to_date); if(isNaN(from.getTime()))from=new Date(); if(isNaN(to.getTime()))to=new Date(from.getTime()+7*864e5);\nvar booked=[]; try{ booked=await helpers.httpRequest({method:'GET',url:base+'/rest/v1/visits?specialty_id=eq.'+specialty_id+'&status=in.(scheduled,checked_in)&scheduled_start=gte.'+from.toISOString()+'&scheduled_start=lte.'+new Date(to.getTime()+864e5).toISOString()+'&select=scheduled_start',headers:Hget,json:true}); }catch(e){ booked=[]; }\nvar bookedArr=Array.isArray(booked)?booked:[];\nvar ov=[]; try{ ov=await helpers.httpRequest({method:'GET',url:base+'/rest/v1/slot_overrides?facility_id=eq.'+facility_id+'&or=(specialty_id.eq.'+specialty_id+',specialty_id.is.null)&ends_at=gte.'+from.toISOString()+'&starts_at=lte.'+new Date(to.getTime()+864e5).toISOString()+'&select=specialty_id,starts_at,ends_at,rooms_available',headers:Hget,json:true}); }catch(e){ ov=[]; }\nfunction dow(dateStr){ var w=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Amman',weekday:'short'}).format(new Date(dateStr+'T12:00:00+03:00')); return {Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6}[w]; }\nvar slots=[]; var cur=new Date(from); cur.setUTCHours(0,0,0,0); var last=new Date(to); last.setUTCHours(0,0,0,0);\nfor(var day=0; day<22 && cur.getTime()<=last.getTime() && slots.length<10; day++){\n  var ds=cur.toISOString().slice(0,10); var wd=dow(ds);\n  for(var t=0;t<tpl.length && slots.length<10;t++){ var tp=tpl[t]; if(Number(tp.day_of_week)!==wd) continue;\n    var sh=parseInt(String(tp.start_time).slice(0,2),10), sm=parseInt(String(tp.start_time).slice(3,5),10);\n    var eh=parseInt(String(tp.end_time).slice(0,2),10), em=parseInt(String(tp.end_time).slice(3,5),10);\n    var mins=sh*60+sm, endm=eh*60+em;\n    for(; mins+30<=endm && slots.length<10; mins+=30){\n      var hh=('0'+Math.floor(mins/60)).slice(-2), mm=('0'+(mins%60)).slice(-2);\n      var startISO=ds+'T'+hh+':'+mm+':00+03:00'; var sd=new Date(startISO); if(sd.getTime()<=Date.now()) continue;\n      var ed=new Date(sd.getTime()+30*60000); var rooms=Number(tp.rooms)||1;\n      for(var oi=0;oi<ov.length;oi++){ var ovr=ov[oi]; if(new Date(ovr.starts_at).getTime()<=sd.getTime() && new Date(ovr.ends_at).getTime()>=ed.getTime()){ rooms=Number(ovr.rooms_available)||0; } }\n      var taken=0; for(var bj=0;bj<bookedArr.length;bj++){ var bt=new Date(bookedArr[bj].scheduled_start).getTime(); if(bt>=sd.getTime() && bt<ed.getTime()) taken++; }\n      if(rooms-taken<=0) continue;\n      slots.push({start:sd.toISOString(),end:ed.toISOString(),display_ar:dispAr(sd),display_en:dispEn(sd),room_id:null});\n    }\n  }\n  cur.setUTCDate(cur.getUTCDate()+1);\n}\nreturn [{json:{_result:{slots:slots},_t0:inp._t0}}];"
+      },
+      "id": "node3",
+      "name": "Compute Slots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp.ok===false) return [{json:{ok:false,data:null,message_for_agent:inp.message_for_agent||null,error_code:inp.error_code,meta:{version:'v1'}}}]; return [{json:{ok:true,data:inp._result,message_for_agent: inp._msg||null,error_code:null,meta:{version:'v1',duration_ms: inp._t0?(Date.now()-inp._t0):null}}}];"
+      },
+      "id": "node4",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "node5",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Auth Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth Check": {
+      "main": [
+        [
+          {
+            "node": "Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate": {
+      "main": [
+        [
+          {
+            "node": "Compute Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Slots": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

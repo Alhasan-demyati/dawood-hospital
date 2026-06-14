@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+
+# build artifacts
+dist/
+.turbo/
+*.tsbuildinfo
+
+# env (keep examples; everything else — incl. .env.local / .env.secrets — is ignored)
+.env
+.env.*
+!.env.example
+
+# local credential drops (never commit) — raw key files the client handed over
+Supabase keys/
+elevenlabs keys/
+n8n keys/
+*.rtf
+
+# logs
+*.log
+npm-debug.log*
+
+# test coverage
+coverage/
+
+# misc
+.DS_Store
+*.pem
+.vercel

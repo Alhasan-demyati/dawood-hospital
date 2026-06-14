@@ -1,0 +1,180 @@
+{
+  "name": "book_visit",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "book-visit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node0",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "book-visit-wh"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var req=$input.first().json; var headers=(req && req.headers)||{};\nvar got=headers['x-auth-secret']||headers['X-Auth-Secret'];\nvar expected=$env.N8N_SHARED_SECRET;\nif(!expected || got!==expected){ return [{json:{ok:false,data:null,error_code:'AUTH_REJECTED',message_for_agent:null,meta:{version:'v1'}}}]; }\nvar body=(req && req.body)||{};\nreturn [{json: Object.assign({}, body, {_headers:headers, _t0: Date.now()})}];"
+      },
+      "id": "node1",
+      "name": "Auth Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function isPlaceholder(s){ if(typeof s!=='string') return false; return /USER_.*_PLACEHOLDER|PLACEHOLDER|YOUR_.*|<<.*>>|\\{\\{.*\\}\\}/i.test(s) || /^[A-Z_]{8,}$/.test(s); }\nfunction toE164(spoken,country){ country=country||($env.JURISDICTION||'JO'); var d=(spoken||'').replace(/[^0-9+]/g,''); if(d.indexOf('+')===0)return d; if(d.indexOf('00')===0)return '+'+d.slice(2); if(country==='JO'){ if(d.indexOf('07')===0&&d.length===10)return '+962'+d.slice(1); if(d.indexOf('962')===0)return '+'+d; if(d.length===9&&/^[78][0-9]/.test(d.slice(1)))return '+962'+d; } return d.indexOf('+')===0?d:'+962'+d; }\nvar inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nfunction err(c,m){ return [{json:{ok:false,data:null,error_code:c,message_for_agent:m,meta:{version:'v1'}}}]; }\nif(!inp.confirmation_token || isPlaceholder(String(inp.confirmation_token))) return err('CONFIRMATION_REQUIRED','Confirm the booking verbally first, then retry with a confirmation_token.');\nvar fields=['spoken_phone','specialty','start_time','chief_complaint','mrn','payer','name'];\nfor(var i=0;i<fields.length;i++){ var v=inp[fields[i]]; if(v && isPlaceholder(String(v))) return err('PLACEHOLDER_DETECTED',\"Re-extract the actual value from the caller's spoken words.\"); }\nif(!inp.chief_complaint || String(inp.chief_complaint).trim().length<1) return err('INPUT_TOO_SHORT','Capture the chief complaint before booking.');\nif(!inp.spoken_phone) return err('MISSING_INPUT','Ask the caller for their phone number.');\nvar phone=toE164(inp.spoken_phone,'JO');\nvar pb=['patient','bot_suggestion','staff_override'].indexOf(inp.picked_by)>=0?inp.picked_by:'patient';\nreturn [{json: Object.assign({}, inp, {phone_e164:phone, picked_by:pb})}];"
+      },
+      "id": "node2",
+      "name": "Validate + normalise",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nif(inp.ok===false) return [{json:inp}];\nvar base=$env.SUPABASE_URL, key=$env.SUPABASE_SERVICE_ROLE_KEY, helpers=this.helpers; var Hget={apikey:key,Authorization:'Bearer '+key}; var Hjson={apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'};\nvar raw=String((inp.specialty_id||inp.specialty)||'').trim();\nif(!raw) return [{json:{ok:false,data:null,error_code:'SPECIALTY_NOT_FOUND',message_for_agent:'Ask the caller which clinic to book.',meta:{version:'v1'}}}];\nvar uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\nvar q = uuid.test(raw) ? ('id=eq.'+raw) : ('or=(code.eq.'+encodeURIComponent(raw)+',name_ar.eq.'+encodeURIComponent(raw)+',name_en.eq.'+encodeURIComponent(raw)+')');\nvar rows=[];\ntry{ rows=await helpers.httpRequest({method:'GET',url:base+'/rest/v1/specialties?'+q+'&select=id,code,name_ar&limit=1',headers:Hget,json:true}); }catch(e){ rows=[]; }\nif(!Array.isArray(rows)||rows.length===0) return [{json:{ok:false,data:null,error_code:'SPECIALTY_NOT_FOUND',message_for_agent:'Could not resolve the specialty; ask the caller to pick a clinic.',meta:{version:'v1'}}}];\nreturn [{json: Object.assign({}, inp, {specialty_id:rows[0].id, specialty_code:rows[0].code, specialty_name_ar:rows[0].name_ar})}];"
+      },
+      "id": "node3",
+      "name": "Resolve Specialty",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nif(inp.ok===false) return [{json:inp}];\nvar base=$env.SUPABASE_URL, key=$env.SUPABASE_SERVICE_ROLE_KEY, helpers=this.helpers; var Hget={apikey:key,Authorization:'Bearer '+key}; var Hjson={apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'};\nfunction dispAr(d){try{return new Intl.DateTimeFormat('ar-JO',{timeZone:'Asia/Amman',weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'numeric',minute:'2-digit'}).format(d);}catch(e){return d.toISOString();}} function dispEn(d){try{return new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Amman',weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'numeric',minute:'2-digit'}).format(d);}catch(e){return d.toISOString();}}\nfunction ref(){ var A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; var s=''; for(var i=0;i<5;i++) s+=A[Math.floor(Math.random()*A.length)]; return 'DV-'+s; }\nvar start=new Date(inp.start_time);\nif(isNaN(start.getTime())) return [{json:{ok:false,data:null,error_code:'OUTSIDE_HOURS',message_for_agent:'The chosen time is invalid; offer another slot.',meta:{version:'v1'}}}];\nif(start.getTime()<=Date.now()) return [{json:{ok:false,data:null,error_code:'OUTSIDE_HOURS',message_for_agent:'The chosen time is in the past; offer a future slot.',meta:{version:'v1'}}}];\nvar patient=null;\ntry{ var pr=await helpers.httpRequest({method:'GET',url:base+'/rest/v1/patients?phone_e164=eq.'+encodeURIComponent(inp.phone_e164)+'&select=id,first_name,last_name&limit=1',headers:Hget,json:true}); if(Array.isArray(pr)&&pr.length) patient=pr[0]; }catch(e){}\nif(!patient){ var nm=(inp.name||'').trim(); var parts=nm.split(/\\s+/); var first=parts.shift()||'مريض'; var last=parts.join(' ')||'جديد'; var pbody={phone_e164:inp.phone_e164,first_name:first,last_name:last}; if(inp.dob)pbody.dob=inp.dob; if(inp.mrn)pbody.mrn=inp.mrn; var pins=await helpers.httpRequest({method:'POST',url:base+'/rest/v1/patients',headers:Object.assign({},Hjson,{Prefer:'return=representation'}),body:pbody,json:true}); patient=Array.isArray(pins)?pins[0]:pins; }\nvar facility_id=null;\ntry{ var f=await helpers.httpRequest({method:'GET',url:base+'/rest/v1/facilities?code=eq.dawood_main&select=id&limit=1',headers:Hget,json:true}); if(Array.isArray(f)&&f.length) facility_id=f[0].id; }catch(e){}\nif(facility_id){ var wdStr=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Amman',weekday:'short'}).format(start); var wd={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6}[wdStr]; var hm=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Amman',hour:'2-digit',minute:'2-digit',hour12:false}).format(start); var fh=[]; try{ fh=await helpers.httpRequest({method:'GET',url:base+'/rest/v1/facility_hours?facility_id=eq.'+facility_id+'&day_of_week=eq.'+wd+'&select=opens_at,closes_at,is_closed&limit=1',headers:Hget,json:true}); }catch(e){} if(Array.isArray(fh)&&fh.length){ var fhr=fh[0]; if(fhr.is_closed || !fhr.opens_at || !fhr.closes_at || hm < String(fhr.opens_at).slice(0,5) || hm >= String(fhr.closes_at).slice(0,5)){ return [{json:{ok:false,data:null,error_code:'OUTSIDE_HOURS',message_for_agent:'The clinic is closed at that time; offer a slot within working hours.',meta:{version:'v1'}}}]; } } }\nvar ds=new Date(start); ds.setUTCHours(0,0,0,0); var de=new Date(ds); de.setUTCDate(de.getUTCDate()+1);\ntry{ var dup=await helpers.httpRequest({method:'GET',url:base+'/rest/v1/visits?patient_id=eq.'+patient.id+'&status=in.(scheduled,checked_in)&scheduled_start=gte.'+ds.toISOString()+'&scheduled_start=lt.'+de.toISOString()+'&select=id&limit=1',headers:Hget,json:true}); if(Array.isArray(dup)&&dup.length) return [{json:{ok:false,data:null,error_code:'DUPLICATE_ACTIVE_VISIT',message_for_agent:'The patient already has an active visit that day; offer another day.',meta:{version:'v1'}}}]; }catch(e){}\nvar booking_reference=ref(); var end=new Date(start.getTime()+30*60000);\nvar vbody={booking_reference:booking_reference,patient_id:patient.id,facility_id:facility_id,specialty_id:inp.specialty_id,scheduled_start:start.toISOString(),scheduled_end:end.toISOString(),status:'scheduled'};\nvar vins=await helpers.httpRequest({method:'POST',url:base+'/rest/v1/visits',headers:Object.assign({},Hjson,{Prefer:'return=representation'}),body:vbody,json:true}); var visit=Array.isArray(vins)?vins[0]:vins;\nvar ibody={visit_id:visit.id,chief_complaint:inp.chief_complaint,picked_by:inp.picked_by}; if(inp.suggested_specialty_id)ibody.suggested_specialty_id=inp.suggested_specialty_id; if(inp.payer)ibody.payer_name=inp.payer;\nawait helpers.httpRequest({method:'POST',url:base+'/rest/v1/visit_intake',headers:Object.assign({},Hjson,{Prefer:'return=minimal'}),body:ibody,json:true});\nawait helpers.httpRequest({method:'POST',url:base+'/rest/v1/audit_log',headers:Object.assign({},Hjson,{Prefer:'return=minimal'}),body:{conversation_id:inp.conversation_id||null,actor:'agent',action:'book_visit',target_table:'visits',target_id:visit.id,before_json:null,after_json:visit,confirmation_token:inp.confirmation_token},json:true});\nvar result={booking_reference:booking_reference,visit_id:visit.id,scheduled_start:visit.scheduled_start,scheduled_start_display_ar:dispAr(start),scheduled_start_display_en:dispEn(start),specialty:{id:inp.specialty_id,code:inp.specialty_code,name_ar:inp.specialty_name_ar}};\nreturn [{json: Object.assign({}, inp, {_result:result})}];"
+      },
+      "id": "node4",
+      "name": "Insert Visit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json;\nif(inp.ok===false) return [{json:{ok:false,data:null,message_for_agent:inp.message_for_agent||null,error_code:inp.error_code,meta:{version:'v1'}}}];\nreturn [{json:{ok:true,data:inp._result,message_for_agent:null,error_code:null,meta:{version:'v1',duration_ms: inp._t0?(Date.now()-inp._t0):null}}}];"
+      },
+      "id": "node5",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "node6",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Auth Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth Check": {
+      "main": [
+        [
+          {
+            "node": "Validate + normalise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate + normalise": {
+      "main": [
+        [
+          {
+            "node": "Resolve Specialty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Specialty": {
+      "main": [
+        [
+          {
+            "node": "Insert Visit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Visit": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

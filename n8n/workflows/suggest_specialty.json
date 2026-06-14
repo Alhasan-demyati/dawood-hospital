@@ -1,0 +1,180 @@
+{
+  "name": "suggest_specialty",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "suggest-specialty",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node0",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "suggest-specialty-wh"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var req=$input.first().json; var headers=(req && req.headers)||{};\nvar got=headers['x-auth-secret']||headers['X-Auth-Secret'];\nvar expected=$env.N8N_SHARED_SECRET;\nif(!expected || got!==expected){ return [{json:{ok:false,data:null,error_code:'AUTH_REJECTED',message_for_agent:null,meta:{version:'v1'}}}]; }\nvar body=(req && req.body)||{};\nreturn [{json: Object.assign({}, body, {_headers:headers, _t0: Date.now()})}];"
+      },
+      "id": "node1",
+      "name": "Auth Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// suggest_specialty pg_trgm scoring is executed via the rpc function\n// public.suggest_specialty_score(complaint text) — see n8n/README.md for CREATE FUNCTION.\n// Equivalent SQL:\n//   SELECT s.id AS specialty_id, s.name_ar, s.name_en, s.code, s.color_hex,\n//          GREATEST(similarity(p.pattern_ar, $1), 0) * p.weight AS score\n//     FROM chief_complaint_patterns p JOIN specialties s ON s.id = p.specialty_id\n//    WHERE p.pattern_ar % $1 OR similarity(p.pattern_ar, $1) > 0.15\n//    ORDER BY score DESC LIMIT 5;\nfunction isPlaceholder(s){ if(typeof s!=='string') return false; return /USER_.*_PLACEHOLDER|PLACEHOLDER|YOUR_.*|<<.*>>|\\{\\{.*\\}\\}/i.test(s) || /^[A-Z_]{8,}$/.test(s); }\nvar inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nvar cc=(inp.chief_complaint||'').toString();\nif(!cc || isPlaceholder(cc)) return [{json:{ok:false,data:null,error_code:'PLACEHOLDER_DETECTED',message_for_agent:\"Re-extract the actual value from the caller's spoken words.\",meta:{version:'v1'}}}];\nif(cc.trim().length<3) return [{json:{ok:false,data:null,error_code:'INPUT_TOO_SHORT',message_for_agent:'Ask the caller to describe the complaint in a few words.',meta:{version:'v1'}}}];\nvar normalized=cc.trim().replace(/[\\u064B-\\u0652\\u0670]/g,'').toLowerCase();\nreturn [{json:{conversation_id:inp.conversation_id||null,chief_complaint:cc.trim(),normalized:normalized,_t0:inp._t0}}];"
+      },
+      "id": "node2",
+      "name": "Validate input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nif(inp.ok===false) return [{json:inp}];\nvar base=$env.SUPABASE_URL, key=$env.SUPABASE_SERVICE_ROLE_KEY, helpers=this.helpers; var Hget={apikey:key,Authorization:'Bearer '+key}; var Hjson={apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'};\nvar rows=[];\ntry{ rows=await helpers.httpRequest({method:'POST',url:base+'/rest/v1/rpc/suggest_specialty_score',headers:Hjson,body:{complaint:inp.normalized},json:true}); }\ncatch(e){ return [{json:{ok:false,data:null,error_code:'SCORING_FAILED',message_for_agent:'Specialty scoring is unavailable; ask the caller to pick a clinic.',meta:{version:'v1'}}}]; }\nif(!Array.isArray(rows)) rows=(rows && rows.data)?rows.data:[];\nvar map=new Map();\nfor(var i=0;i<rows.length;i++){ var r=rows[i]; var cur=map.get(r.specialty_id)||{specialty_id:r.specialty_id,name_ar:r.name_ar,name_en:r.name_en,code:r.code,color_hex:r.color_hex,score:0}; cur.score+=Number(r.score)||0; map.set(r.specialty_id,cur); }\nvar specs=Array.from(map.values()).sort(function(a,b){return b.score-a.score;});\nvar total=specs.reduce(function(s,x){return s+x.score;},0);\nvar suggestions=specs.slice(0,2).map(function(x){return {specialty_id:x.specialty_id,name_ar:x.name_ar,name_en:x.name_en,code:x.code,color_hex:x.color_hex,confidence: total>0?Math.min(1,x.score/total):0};});\nvar top=suggestions[0]||null;\nreturn [{json:{conversation_id:inp.conversation_id,chief_complaint:inp.chief_complaint,suggestions:suggestions,top_specialty_id: top?top.specialty_id:null, top_confidence: top?Math.min(1,top.confidence):0,_t0:inp._t0}}];"
+      },
+      "id": "node3",
+      "name": "Score + Aggregate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nif(inp.ok===false) return [{json:inp}];\nvar base=$env.SUPABASE_URL, key=$env.SUPABASE_SERVICE_ROLE_KEY, helpers=this.helpers; var Hget={apikey:key,Authorization:'Bearer '+key}; var Hjson={apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'};\nvar latency=inp._t0?(Date.now()-inp._t0):null;\nvar payload={conversation_id:inp.conversation_id||null,tool_name:'suggest_specialty',request_json:{chief_complaint:inp.chief_complaint},response_json:{top_specialty_id:inp.top_specialty_id,top_confidence:inp.top_confidence,suggestions:inp.suggestions},ok:true,error_code:null,latency_ms:latency};\ntry{ if(inp.conversation_id){ await helpers.httpRequest({method:'POST',url:base+'/rest/v1/tool_calls',headers:Object.assign({},Hjson,{Prefer:'return=minimal'}),body:payload,json:true}); } }catch(e){}\nreturn [{json:inp}];"
+      },
+      "id": "node4",
+      "name": "Write audit row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json;\nif(inp.ok===false) return [{json:{ok:false,data:null,message_for_agent:inp.message_for_agent||null,error_code:inp.error_code,meta:{version:'v1'}}}];\nvar empty=!inp.suggestions || inp.suggestions.length===0;\nreturn [{json:{ok:true,data:{suggestions:inp.suggestions||[],top_specialty_id:inp.top_specialty_id||null,top_confidence:inp.top_confidence||0},message_for_agent: empty?'No specialty matched; ask the caller to pick directly.':null,error_code:null,meta:{version:'v1',duration_ms: inp._t0?(Date.now()-inp._t0):null}}}];"
+      },
+      "id": "node5",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "node6",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Auth Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth Check": {
+      "main": [
+        [
+          {
+            "node": "Validate input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate input": {
+      "main": [
+        [
+          {
+            "node": "Score + Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score + Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Write audit row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write audit row": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

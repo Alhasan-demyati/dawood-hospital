@@ -1,0 +1,63 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@300;400;500;600;700&display=swap");
+@import "../../../packages/shared/styles/tokens.css";
+@import "../../../packages/shared/styles/animations.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Atmospheric backdrop — soft emerald + gold glows with a fine grain so the
+ * dashboard reads as a crafted surface, not flat white. */
+.app-bg {
+  background:
+    var(--grain),
+    radial-gradient(55% 38% at 100% -5%, color-mix(in srgb, var(--color-accent) 15%, transparent), transparent 62%),
+    radial-gradient(46% 40% at -5% 108%, color-mix(in srgb, var(--color-accent-2) 10%, transparent), transparent 60%),
+    var(--color-background);
+  background-attachment: fixed;
+}
+
+/* ---- Chart motion (DB-driven graphics) ---- */
+.chart-bar {
+  transform-origin: bottom;
+  animation: bar-grow 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes bar-grow {
+  from { transform: scaleY(0); opacity: 0.3; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+.chart-grow {
+  transform-origin: left;
+  animation: grow-x 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+[dir="rtl"] .chart-grow {
+  transform-origin: right;
+}
+@keyframes grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.donut-wrap {
+  animation: donut-pop 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes donut-pop {
+  from { transform: scale(0.86) rotate(-8deg); opacity: 0; }
+  to { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-bar, .chart-grow, .donut-wrap { animation: none !important; transform: none !important; }
+}

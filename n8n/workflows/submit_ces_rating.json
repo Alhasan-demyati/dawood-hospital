@@ -1,0 +1,155 @@
+{
+  "name": "submit_ces_rating",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "submit-ces-rating",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node0",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "submit-ces-rating-wh"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var req=$input.first().json; var headers=(req && req.headers)||{};\nvar got=headers['x-auth-secret']||headers['X-Auth-Secret'];\nvar expected=$env.N8N_SHARED_SECRET;\nif(!expected || got!==expected){ return [{json:{ok:false,data:null,error_code:'AUTH_REJECTED',message_for_agent:null,meta:{version:'v1'}}}]; }\nvar body=(req && req.body)||{};\nreturn [{json: Object.assign({}, body, {_headers:headers, _t0: Date.now()})}];"
+      },
+      "id": "node1",
+      "name": "Auth Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nif(!inp.conversation_id) return [{json:{ok:false,data:null,error_code:'MISSING_INPUT',message_for_agent:'conversation_id is required.',meta:{version:'v1'}}}];\nvar declined=inp.declined===true; var hasScore=(inp.score!==undefined&&inp.score!==null);\nif(!declined&&!hasScore) return [{json:{ok:false,data:null,error_code:'INVALID_RATING',message_for_agent:'Provide a score from 1 to 10 or mark it declined.',meta:{version:'v1'}}}];\nif(hasScore){ var n=Number(inp.score); if(!Number.isInteger(n)||n<1||n>10) return [{json:{ok:false,data:null,error_code:'INVALID_RATING',message_for_agent:'The score must be an integer from 1 to 10.',meta:{version:'v1'}}}]; }\nreturn [{json:inp}];"
+      },
+      "id": "node2",
+      "name": "Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nif(inp.ok===false) return [{json:inp}];\nvar base=$env.SUPABASE_URL, key=$env.SUPABASE_SERVICE_ROLE_KEY, helpers=this.helpers; var Hget={apikey:key,Authorization:'Bearer '+key}; var Hjson={apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'};\nvar declined=inp.declined===true; var score=declined?null:Number(inp.score);\nvar cbody={conversation_id:inp.conversation_id,channel:'voice',ces:score,declined:declined};\nvar cins=await helpers.httpRequest({method:'POST',url:base+'/rest/v1/customer_feedback',headers:Object.assign({},Hjson,{Prefer:'return=representation'}),body:cbody,json:true});\nvar cf=Array.isArray(cins)?cins[0]:cins;\ntry{ await helpers.httpRequest({method:'POST',url:base+'/rest/v1/outcomes?on_conflict=conversation_id',headers:Object.assign({},Hjson,{Prefer:'resolution=merge-duplicates,return=minimal'}),body:{conversation_id:inp.conversation_id,ces:score,ces_declined:declined},json:true}); }catch(e){}\ntry{ await helpers.httpRequest({method:'POST',url:base+'/rest/v1/audit_log',headers:Object.assign({},Hjson,{Prefer:'return=minimal'}),body:{conversation_id:inp.conversation_id,actor:'service',action:'submit_ces_rating',target_table:'customer_feedback',target_id:(cf&&cf.id)||null,before_json:null,after_json:{ces:score,declined:declined}},json:true}); }catch(e){}\nreturn [{json:{_result:{ces_id:(cf&&cf.id)||null},_t0:inp._t0}}];"
+      },
+      "id": "node3",
+      "name": "Insert Rating",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp.ok===false) return [{json:{ok:false,data:null,message_for_agent:inp.message_for_agent||null,error_code:inp.error_code,meta:{version:'v1'}}}]; return [{json:{ok:true,data:inp._result,message_for_agent: inp._msg||null,error_code:null,meta:{version:'v1',duration_ms: inp._t0?(Date.now()-inp._t0):null}}}];"
+      },
+      "id": "node4",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "node5",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Auth Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth Check": {
+      "main": [
+        [
+          {
+            "node": "Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate": {
+      "main": [
+        [
+          {
+            "node": "Insert Rating",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Rating": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

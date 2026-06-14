@@ -1,0 +1,155 @@
+{
+  "name": "prepare_handover",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "prepare-handover",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node0",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "prepare-handover-wh"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var req=$input.first().json; var headers=(req && req.headers)||{};\nvar got=headers['x-auth-secret']||headers['X-Auth-Secret'];\nvar expected=$env.N8N_SHARED_SECRET;\nif(!expected || got!==expected){ return [{json:{ok:false,data:null,error_code:'AUTH_REJECTED',message_for_agent:null,meta:{version:'v1'}}}]; }\nvar body=(req && req.body)||{};\nreturn [{json: Object.assign({}, body, {_headers:headers, _t0: Date.now()})}];"
+      },
+      "id": "node1",
+      "name": "Auth Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nvar allowed=['consent_declined','out_of_scope','customer_request','low_confidence','repeated_failure','patient_not_found','safety','specialty_unclear'];\nif(!inp.conversation_id) return [{json:{ok:false,data:null,error_code:'MISSING_INPUT',message_for_agent:'conversation_id is required.',meta:{version:'v1'}}}];\nif(allowed.indexOf(inp.reason_code)<0) return [{json:{ok:false,data:null,error_code:'INVALID_REASON_CODE',message_for_agent:'Use one of the allowed handover reasons.',meta:{version:'v1'}}}];\nreturn [{json:inp}];"
+      },
+      "id": "node2",
+      "name": "Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nif(inp.ok===false) return [{json:inp}];\nvar base=$env.SUPABASE_URL, key=$env.SUPABASE_SERVICE_ROLE_KEY, helpers=this.helpers; var Hget={apikey:key,Authorization:'Bearer '+key}; var Hjson={apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'};\nvar target=$env.HANDOVER_TARGET_PHONE||'+96265000000';\nvar hbody={conversation_id:inp.conversation_id,reason_code:inp.reason_code,summary_ar:(inp.summary_ar||null),customer_data:(inp.customer_data||{}),target_agent_id:target,triggered_at:new Date().toISOString()};\nvar hins=await helpers.httpRequest({method:'POST',url:base+'/rest/v1/handovers',headers:Object.assign({},Hjson,{Prefer:'return=representation'}),body:hbody,json:true});\nvar h=Array.isArray(hins)?hins[0]:hins;\ntry{ await helpers.httpRequest({method:'POST',url:base+'/rest/v1/audit_log',headers:Object.assign({},Hjson,{Prefer:'return=minimal'}),body:{conversation_id:inp.conversation_id,actor:'agent',action:'prepare_handover',target_table:'handovers',target_id:(h&&h.id)||null,before_json:null,after_json:{reason_code:inp.reason_code}},json:true}); }catch(e){}\nreturn [{json:{_result:{handover_id:(h&&h.id)||null,target_agent_id:target},_t0:inp._t0}}];"
+      },
+      "id": "node3",
+      "name": "Insert Handover",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp.ok===false) return [{json:{ok:false,data:null,message_for_agent:inp.message_for_agent||null,error_code:inp.error_code,meta:{version:'v1'}}}]; return [{json:{ok:true,data:inp._result,message_for_agent: inp._msg||null,error_code:null,meta:{version:'v1',duration_ms: inp._t0?(Date.now()-inp._t0):null}}}];"
+      },
+      "id": "node4",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "node5",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Auth Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth Check": {
+      "main": [
+        [
+          {
+            "node": "Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate": {
+      "main": [
+        [
+          {
+            "node": "Insert Handover",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Handover": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

@@ -1,0 +1,522 @@
+{
+  "$schema": "https://elevenlabs.io/schemas/conversational-tools.v1.json",
+  "agent": "Salma — Dawood Hospital",
+  "language": "ar",
+  "_notes": {
+    "envelope": "Every tool responds with { ok, data, message_for_agent, error_code, meta }.",
+    "auth": "All webhooks require header X-Auth-Secret: {{N8N_SHARED_SECRET}}.",
+    "reason_code": "prepare_handover.reason_code uses the DB-constrained 8-value set (includes specialty_unclear, excludes medical_advice_requested).",
+    "picked_by": "book_visit.picked_by uses the DB values patient | bot_suggestion | staff_override. The agent only ever sends 'patient' (caller named the clinic) or 'bot_suggestion' (caller accepted suggest_specialty)."
+  },
+  "tools": [
+    {
+      "name": "get_patient_by_phone",
+      "description": "Look up a patient by a confirmed E.164 phone number. Returns the patient and a summary of upcoming visits. Used in UC-D2/UC-D3 identification once the phone has been confirmed digit-by-digit.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "description": "Confirmed phone in E.164 (Jordan), e.g. +9627XXXXXXXX. Never a placeholder."
+          }
+        },
+        "required": ["phone"]
+      },
+      "webhook": {
+        "url": "{{N8N_BASE_URL}}/webhook/get_patient_by_phone",
+        "method": "POST",
+        "headers": {
+          "X-Auth-Secret": "{{N8N_SHARED_SECRET}}",
+          "X-Source": "elevenlabs",
+          "Content-Type": "application/json"
+        },
+        "request_body_template": { "phone": "{{phone}}" },
+        "timeout_ms": 8000,
+        "response_schema": {
+          "type": "object",
+          "properties": {
+            "ok": { "type": "boolean" },
+            "data": {
+              "type": "object",
+              "properties": {
+                "found": { "type": "boolean" },
+                "patient": { "type": ["object", "null"] },
+                "recent_visits": { "type": "array", "items": { "type": "object" } }
+              }
+            },
+            "message_for_agent": { "type": "string" },
+            "error_code": { "type": ["string", "null"] },
+            "meta": { "type": "object" }
+          },
+          "required": ["ok"]
+        }
+      }
+    },
+    {
+      "name": "find_patient",
+      "description": "Fallback identification when phone lookup returns no match. Provide either an MRN, OR a full name together with date of birth. Returns the matched patient or found=false.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "mrn": { "type": "string", "description": "Medical record number, spelled letter-by-letter by the caller." },
+          "name": { "type": "string", "description": "Patient full name." },
+          "dob": { "type": "string", "format": "date", "description": "Date of birth, YYYY-MM-DD." }
+        },
+        "anyOf": [
+          { "required": ["mrn"] },
+          { "required": ["name", "dob"] }
+        ]
+      },
+      "webhook": {
+        "url": "{{N8N_BASE_URL}}/webhook/find_patient",
+        "method": "POST",
+        "headers": {
+          "X-Auth-Secret": "{{N8N_SHARED_SECRET}}",
+          "X-Source": "elevenlabs",
+          "Content-Type": "application/json"
+        },
+        "request_body_template": { "mrn": "{{mrn}}", "name": "{{name}}", "dob": "{{dob}}" },
+        "timeout_ms": 8000,
+        "response_schema": {
+          "type": "object",
+          "properties": {
+            "ok": { "type": "boolean" },
+            "data": {
+              "type": "object",
+              "properties": {
+                "found": { "type": "boolean" },
+                "patient": { "type": ["object", "null"] }
+              }
+            },
+            "message_for_agent": { "type": "string" },
+            "error_code": { "type": ["string", "null"] },
+            "meta": { "type": "object" }
+          },
+          "required": ["ok"]
+        }
+      }
+    },
+    {
+      "name": "list_visits",
+      "description": "List a patient's upcoming and recent visits. Used in UC-D3 step 3. Optionally filter by status.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "patient_id": { "type": "string", "description": "Patient UUID from get_patient_by_phone / find_patient." },
+          "status": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["scheduled", "checked_in", "in_room", "discharged", "cancelled", "no_show"] },
+            "description": "Optional status filter, e.g. ['scheduled']."
+          }
+        },
+        "required": ["patient_id"]
+      },
+      "webhook": {
+        "url": "{{N8N_BASE_URL}}/webhook/list_visits",
+        "method": "POST",
+        "headers": {
+          "X-Auth-Secret": "{{N8N_SHARED_SECRET}}",
+          "X-Source": "elevenlabs",
+          "Content-Type": "application/json"
+        },
+        "request_body_template": { "patient_id": "{{patient_id}}", "status": "{{status}}" },
+        "timeout_ms": 8000,
+        "response_schema": {
+          "type": "object",
+          "properties": {
+            "ok": { "type": "boolean" },
+            "data": {
+              "type": "object",
+              "properties": {
+                "visits": { "type": "array", "items": { "type": "object" } }
+              }
+            },
+            "message_for_agent": { "type": "string" },
+            "error_code": { "type": ["string", "null"] },
+            "meta": { "type": "object" }
+          },
+          "required": ["ok"]
+        }
+      }
+    },
+    {
+      "name": "suggest_specialty",
+      "description": "Score the caller's chief complaint against the chief_complaint_patterns table (pg_trgm + weighted match) and return the top 1-2 specialties with confidence. Call this right after capturing the chief complaint in UC-D2. NEVER guess a specialty from training knowledge.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "chief_complaint": {
+            "type": "string",
+            "description": "The caller's complaint, passed verbatim as spoken (Arabic)."
+          }
+        },
+        "required": ["chief_complaint"]
+      },
+      "webhook": {
+        "url": "{{N8N_BASE_URL}}/webhook/suggest_specialty",
+        "method": "POST",
+        "headers": {
+          "X-Auth-Secret": "{{N8N_SHARED_SECRET}}",
+          "X-Source": "elevenlabs",
+          "Content-Type": "application/json"
+        },
+        "request_body_template": { "chief_complaint": "{{chief_complaint}}" },
+        "timeout_ms": 8000,
+        "response_schema": {
+          "type": "object",
+          "properties": {
+            "ok": { "type": "boolean" },
+            "data": {
+              "type": "object",
+              "properties": {
+                "suggestions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "specialty_id": { "type": "string" },
+                      "code": { "type": "string" },
+                      "name_ar": { "type": "string" },
+                      "name_en": { "type": "string" },
+                      "confidence": { "type": "number" }
+                    }
+                  }
+                },
+                "top_specialty_id": { "type": ["string", "null"] },
+                "top_confidence": { "type": "number" }
+              }
+            },
+            "message_for_agent": { "type": "string" },
+            "error_code": { "type": ["string", "null"] },
+            "meta": { "type": "object" }
+          },
+          "required": ["ok"]
+        }
+      }
+    },
+    {
+      "name": "check_availability",
+      "description": "Return open slots for a specialty across a day range. Each slot carries pre-formatted Arabic/English display + weekday strings; read those, do not reformat dates yourself.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "specialty_id": { "type": "string", "description": "Specialty UUID (from suggest_specialty or the caller's pick)." },
+          "from_date": { "type": "string", "format": "date", "description": "Range start, YYYY-MM-DD (Asia/Amman)." },
+          "to_date": { "type": "string", "format": "date", "description": "Range end, YYYY-MM-DD (Asia/Amman)." }
+        },
+        "required": ["specialty_id", "from_date", "to_date"]
+      },
+      "webhook": {
+        "url": "{{N8N_BASE_URL}}/webhook/check_availability",
+        "method": "POST",
+        "headers": {
+          "X-Auth-Secret": "{{N8N_SHARED_SECRET}}",
+          "X-Source": "elevenlabs",
+          "Content-Type": "application/json"
+        },
+        "request_body_template": { "specialty_id": "{{specialty_id}}", "from_date": "{{from_date}}", "to_date": "{{to_date}}" },
+        "timeout_ms": 8000,
+        "response_schema": {
+          "type": "object",
+          "properties": {
+            "ok": { "type": "boolean" },
+            "data": {
+              "type": "object",
+              "properties": {
+                "slots": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "start_time": { "type": "string" },
+                      "_display_ar": { "type": "string" },
+                      "_display_en": { "type": "string" },
+                      "_weekday_ar": { "type": "string" },
+                      "_weekday_en": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            },
+            "message_for_agent": { "type": "string" },
+            "error_code": { "type": ["string", "null"] },
+            "meta": { "type": "object" }
+          },
+          "required": ["ok"]
+        }
+      }
+    },
+    {
+      "name": "book_visit",
+      "description": "Create a new visit (WRITE). Requires a confirmation_token set ONLY after an explicit verbal 'نعم'. Registers a new patient on the fly when name+dob are supplied. picked_by must be 'patient' (caller named the clinic) or 'bot_suggestion' (caller accepted suggest_specialty).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "spoken_phone": { "type": "string", "description": "Confirmed E.164 phone." },
+          "name": { "type": "string", "description": "Full name (required only for a new patient)." },
+          "dob": { "type": "string", "format": "date", "description": "Date of birth (new patient)." },
+          "specialty_id": { "type": "string", "description": "Chosen specialty UUID." },
+          "chief_complaint": { "type": "string", "description": "Caller's complaint, verbatim." },
+          "suggested_specialty_id": { "type": "string", "description": "What suggest_specialty returned, if it was called." },
+          "picked_by": {
+            "type": "string",
+            "enum": ["patient", "bot_suggestion", "staff_override"],
+            "description": "Who chose the specialty. Agent sends 'patient' or 'bot_suggestion'; 'staff_override' is dashboard-only."
+          },
+          "start_time": { "type": "string", "format": "date-time", "description": "Chosen slot start (ISO 8601)." },
+          "confirmation_token": { "type": "string", "description": "confirmed_<iso-datetime>, set only after explicit verbal 'نعم'." }
+        },
+        "required": ["spoken_phone", "specialty_id", "chief_complaint", "picked_by", "start_time", "confirmation_token"]
+      },
+      "webhook": {
+        "url": "{{N8N_BASE_URL}}/webhook/book_visit",
+        "method": "POST",
+        "headers": {
+          "X-Auth-Secret": "{{N8N_SHARED_SECRET}}",
+          "X-Source": "elevenlabs",
+          "Content-Type": "application/json"
+        },
+        "request_body_template": {
+          "spoken_phone": "{{spoken_phone}}",
+          "name": "{{name}}",
+          "dob": "{{dob}}",
+          "specialty_id": "{{specialty_id}}",
+          "chief_complaint": "{{chief_complaint}}",
+          "suggested_specialty_id": "{{suggested_specialty_id}}",
+          "picked_by": "{{picked_by}}",
+          "start_time": "{{start_time}}",
+          "confirmation_token": "{{confirmation_token}}"
+        },
+        "timeout_ms": 8000,
+        "response_schema": {
+          "type": "object",
+          "properties": {
+            "ok": { "type": "boolean" },
+            "data": {
+              "type": "object",
+              "properties": {
+                "booking_reference": { "type": "string" },
+                "visit_id": { "type": "string" },
+                "scheduled_start_display_ar": { "type": "string" }
+              }
+            },
+            "message_for_agent": { "type": "string" },
+            "error_code": { "type": ["string", "null"] },
+            "meta": { "type": "object" }
+          },
+          "required": ["ok"]
+        }
+      }
+    },
+    {
+      "name": "reschedule_visit",
+      "description": "Move an existing visit to a new slot (WRITE). Identify the visit by visit_id OR booking_reference. Requires a confirmation_token set only after an explicit verbal 'نعم'.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "visit_id": { "type": "string", "description": "Visit UUID." },
+          "booking_reference": { "type": "string", "description": "Booking reference, e.g. DV-AAE61." },
+          "new_start": { "type": "string", "format": "date-time", "description": "New slot start (ISO 8601)." },
+          "confirmation_token": { "type": "string", "description": "confirmed_<iso-datetime>." }
+        },
+        "required": ["new_start", "confirmation_token"],
+        "anyOf": [
+          { "required": ["visit_id"] },
+          { "required": ["booking_reference"] }
+        ]
+      },
+      "webhook": {
+        "url": "{{N8N_BASE_URL}}/webhook/reschedule_visit",
+        "method": "POST",
+        "headers": {
+          "X-Auth-Secret": "{{N8N_SHARED_SECRET}}",
+          "X-Source": "elevenlabs",
+          "Content-Type": "application/json"
+        },
+        "request_body_template": {
+          "visit_id": "{{visit_id}}",
+          "booking_reference": "{{booking_reference}}",
+          "new_start": "{{new_start}}",
+          "confirmation_token": "{{confirmation_token}}"
+        },
+        "timeout_ms": 8000,
+        "response_schema": {
+          "type": "object",
+          "properties": {
+            "ok": { "type": "boolean" },
+            "data": {
+              "type": "object",
+              "properties": {
+                "visit_id": { "type": "string" },
+                "scheduled_start_display_ar": { "type": "string" }
+              }
+            },
+            "message_for_agent": { "type": "string" },
+            "error_code": { "type": ["string", "null"] },
+            "meta": { "type": "object" }
+          },
+          "required": ["ok"]
+        }
+      }
+    },
+    {
+      "name": "cancel_visit",
+      "description": "Cancel an existing visit (WRITE). Identify by visit_id OR booking_reference. Requires a confirmation_token set only after an explicit verbal 'نعم' to the cancel question.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "visit_id": { "type": "string", "description": "Visit UUID." },
+          "booking_reference": { "type": "string", "description": "Booking reference, e.g. DV-AAE61." },
+          "reason": { "type": "string", "description": "Optional cancellation reason." },
+          "confirmation_token": { "type": "string", "description": "confirmed_<iso-datetime>." }
+        },
+        "required": ["confirmation_token"],
+        "anyOf": [
+          { "required": ["visit_id"] },
+          { "required": ["booking_reference"] }
+        ]
+      },
+      "webhook": {
+        "url": "{{N8N_BASE_URL}}/webhook/cancel_visit",
+        "method": "POST",
+        "headers": {
+          "X-Auth-Secret": "{{N8N_SHARED_SECRET}}",
+          "X-Source": "elevenlabs",
+          "Content-Type": "application/json"
+        },
+        "request_body_template": {
+          "visit_id": "{{visit_id}}",
+          "booking_reference": "{{booking_reference}}",
+          "reason": "{{reason}}",
+          "confirmation_token": "{{confirmation_token}}"
+        },
+        "timeout_ms": 8000,
+        "response_schema": {
+          "type": "object",
+          "properties": {
+            "ok": { "type": "boolean" },
+            "data": {
+              "type": "object",
+              "properties": {
+                "visit_id": { "type": "string" },
+                "cancelled_at": { "type": "string" }
+              }
+            },
+            "message_for_agent": { "type": "string" },
+            "error_code": { "type": ["string", "null"] },
+            "meta": { "type": "object" }
+          },
+          "required": ["ok"]
+        }
+      }
+    },
+    {
+      "name": "prepare_handover",
+      "description": "Log a handover reason, a 1-3 sentence Arabic summary, and a customer_data JSON blob, immediately before transfer_to_agent. Returns the human-queue destination.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "conversation_id": { "type": "string", "description": "Current conversation id." },
+          "reason_code": {
+            "type": "string",
+            "enum": [
+              "consent_declined",
+              "out_of_scope",
+              "customer_request",
+              "low_confidence",
+              "repeated_failure",
+              "patient_not_found",
+              "safety",
+              "specialty_unclear"
+            ],
+            "description": "DB-constrained handover reason. Clinical-advice / price questions use 'out_of_scope'."
+          },
+          "summary_ar": { "type": "string", "description": "1-3 sentence Arabic summary for the human agent." },
+          "customer_data": { "type": "object", "description": "Structured facts gathered so far (phone, name, mrn, intent, preferred slot, chief_complaint...)." }
+        },
+        "required": ["conversation_id", "reason_code", "summary_ar", "customer_data"]
+      },
+      "webhook": {
+        "url": "{{N8N_BASE_URL}}/webhook/prepare_handover",
+        "method": "POST",
+        "headers": {
+          "X-Auth-Secret": "{{N8N_SHARED_SECRET}}",
+          "X-Source": "elevenlabs",
+          "Content-Type": "application/json"
+        },
+        "request_body_template": {
+          "conversation_id": "{{conversation_id}}",
+          "reason_code": "{{reason_code}}",
+          "summary_ar": "{{summary_ar}}",
+          "customer_data": "{{customer_data}}"
+        },
+        "timeout_ms": 8000,
+        "response_schema": {
+          "type": "object",
+          "properties": {
+            "ok": { "type": "boolean" },
+            "data": {
+              "type": "object",
+              "properties": {
+                "handover_id": { "type": "string" },
+                "target_agent_id": { "type": "string" }
+              }
+            },
+            "message_for_agent": { "type": "string" },
+            "error_code": { "type": ["string", "null"] },
+            "meta": { "type": "object" }
+          },
+          "required": ["ok"]
+        }
+      }
+    },
+    {
+      "name": "submit_ces_rating",
+      "description": "Capture the Customer Effort Score (1-10) at end of call, or that the caller declined. Provide exactly one of score OR declined=true. Only call after goal completion on non-handover calls.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "conversation_id": { "type": "string", "description": "Current conversation id." },
+          "score": { "type": "integer", "minimum": 1, "maximum": 10, "description": "Integer 1-10 (10 = excellent)." },
+          "declined": { "type": "boolean", "description": "true if the caller declined to rate." }
+        },
+        "required": ["conversation_id"],
+        "oneOf": [
+          { "required": ["score"] },
+          { "required": ["declined"] }
+        ]
+      },
+      "webhook": {
+        "url": "{{N8N_BASE_URL}}/webhook/submit_ces_rating",
+        "method": "POST",
+        "headers": {
+          "X-Auth-Secret": "{{N8N_SHARED_SECRET}}",
+          "X-Source": "elevenlabs",
+          "Content-Type": "application/json"
+        },
+        "request_body_template": {
+          "conversation_id": "{{conversation_id}}",
+          "score": "{{score}}",
+          "declined": "{{declined}}"
+        },
+        "timeout_ms": 8000,
+        "response_schema": {
+          "type": "object",
+          "properties": {
+            "ok": { "type": "boolean" },
+            "data": {
+              "type": "object",
+              "properties": {
+                "ces_id": { "type": "string" }
+              }
+            },
+            "message_for_agent": { "type": "string" },
+            "error_code": { "type": ["string", "null"] },
+            "meta": { "type": "object" }
+          },
+          "required": ["ok"]
+        }
+      }
+    }
+  ]
+}

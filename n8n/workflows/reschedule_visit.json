@@ -1,0 +1,155 @@
+{
+  "name": "reschedule_visit",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "reschedule-visit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node0",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "reschedule-visit-wh"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var req=$input.first().json; var headers=(req && req.headers)||{};\nvar got=headers['x-auth-secret']||headers['X-Auth-Secret'];\nvar expected=$env.N8N_SHARED_SECRET;\nif(!expected || got!==expected){ return [{json:{ok:false,data:null,error_code:'AUTH_REJECTED',message_for_agent:null,meta:{version:'v1'}}}]; }\nvar body=(req && req.body)||{};\nreturn [{json: Object.assign({}, body, {_headers:headers, _t0: Date.now()})}];"
+      },
+      "id": "node1",
+      "name": "Auth Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function isPlaceholder(s){ if(typeof s!=='string') return false; return /USER_.*_PLACEHOLDER|PLACEHOLDER|YOUR_.*|<<.*>>|\\{\\{.*\\}\\}/i.test(s) || /^[A-Z_]{8,}$/.test(s); }\nvar inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nfunction err(c,m){return [{json:{ok:false,data:null,error_code:c,message_for_agent:m,meta:{version:'v1'}}}];}\nif(!inp.confirmation_token||isPlaceholder(String(inp.confirmation_token))) return err('CONFIRMATION_REQUIRED','Confirm the new time verbally first, then retry with a confirmation_token.');\nif(!inp.visit_id&&!inp.booking_reference) return err('MISSING_IDENTIFIER','Identify the visit by id or booking reference.');\nif(!inp.new_start) return err('MISSING_INPUT','Ask for the new date and time.');\nreturn [{json:inp}];"
+      },
+      "id": "node2",
+      "name": "Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp && inp.ok===false){ return [{json:inp}]; }\nif(inp.ok===false) return [{json:inp}];\nvar base=$env.SUPABASE_URL, key=$env.SUPABASE_SERVICE_ROLE_KEY, helpers=this.helpers; var Hget={apikey:key,Authorization:'Bearer '+key}; var Hjson={apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'};\nfunction dispAr(d){try{return new Intl.DateTimeFormat('ar-JO',{timeZone:'Asia/Amman',weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'numeric',minute:'2-digit'}).format(d);}catch(e){return d.toISOString();}} function dispEn(d){try{return new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Amman',weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'numeric',minute:'2-digit'}).format(d);}catch(e){return d.toISOString();}}\nvar sel=inp.visit_id?('id=eq.'+inp.visit_id):('booking_reference=eq.'+encodeURIComponent(inp.booking_reference));\nvar vr=[]; try{ vr=await helpers.httpRequest({method:'GET',url:base+'/rest/v1/visits?'+sel+'&select=id,patient_id,facility_id,specialty_id,scheduled_start,scheduled_end,status,booking_reference&limit=1',headers:Hget,json:true}); }catch(e){}\nif(!Array.isArray(vr)||vr.length===0) return [{json:{ok:false,data:null,error_code:'VISIT_NOT_FOUND',message_for_agent:'No matching visit found.',meta:{version:'v1'}}}];\nvar v=vr[0]; var ns=new Date(inp.new_start);\nif(isNaN(ns.getTime())||ns.getTime()<=Date.now()) return [{json:{ok:false,data:null,error_code:'OUTSIDE_HOURS',message_for_agent:'The new time must be in the future; offer another slot.',meta:{version:'v1'}}}];\nvar ds=new Date(ns); ds.setUTCHours(0,0,0,0); var de=new Date(ds); de.setUTCDate(de.getUTCDate()+1);\ntry{ var dup=await helpers.httpRequest({method:'GET',url:base+'/rest/v1/visits?patient_id=eq.'+v.patient_id+'&status=in.(scheduled,checked_in)&id=neq.'+v.id+'&scheduled_start=gte.'+ds.toISOString()+'&scheduled_start=lt.'+de.toISOString()+'&select=id&limit=1',headers:Hget,json:true}); if(Array.isArray(dup)&&dup.length) return [{json:{ok:false,data:null,error_code:'DUPLICATE_ACTIVE_VISIT',message_for_agent:'The patient already has an active visit that day; offer another day.',meta:{version:'v1'}}}]; }catch(e){}\nvar ne=new Date(ns.getTime()+30*60000);\nvar upd=await helpers.httpRequest({method:'PATCH',url:base+'/rest/v1/visits?id=eq.'+v.id,headers:Object.assign({},Hjson,{Prefer:'return=representation'}),body:{scheduled_start:ns.toISOString(),scheduled_end:ne.toISOString(),status:'scheduled'},json:true});\nvar nv=Array.isArray(upd)?upd[0]:upd;\nawait helpers.httpRequest({method:'POST',url:base+'/rest/v1/audit_log',headers:Object.assign({},Hjson,{Prefer:'return=minimal'}),body:{conversation_id:inp.conversation_id||null,actor:'agent',action:'reschedule_visit',target_table:'visits',target_id:v.id,before_json:v,after_json:nv,confirmation_token:inp.confirmation_token},json:true});\nreturn [{json:{_result:{visit_id:v.id,scheduled_start:ns.toISOString(),scheduled_start_display_ar:dispAr(ns),scheduled_start_display_en:dispEn(ns)},_t0:inp._t0}}];"
+      },
+      "id": "node3",
+      "name": "Reschedule",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "var inp=$input.first().json; if(inp.ok===false) return [{json:{ok:false,data:null,message_for_agent:inp.message_for_agent||null,error_code:inp.error_code,meta:{version:'v1'}}}]; return [{json:{ok:true,data:inp._result,message_for_agent: inp._msg||null,error_code:null,meta:{version:'v1',duration_ms: inp._t0?(Date.now()-inp._t0):null}}}];"
+      },
+      "id": "node4",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "node5",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Auth Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth Check": {
+      "main": [
+        [
+          {
+            "node": "Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate": {
+      "main": [
+        [
+          {
+            "node": "Reschedule",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reschedule": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}
