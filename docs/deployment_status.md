@@ -22,7 +22,7 @@ The n8n instance at `curizen.app.n8n.cloud` is a **shared, multi-tenant** instan
 
 ## Remaining steps (yours)
 
-1. **Supabase Auth redirect** — add `http://localhost:3019` and `http://localhost:3019/auth/callback` to *Auth → URL Configuration → Redirect URLs* so the dashboard Magic Link works. Then sign in at :3019 with `the admin email you provisioned`.
+1. **Supabase Auth redirect** — add `http://localhost:3019` and `http://localhost:3019/auth/callback` to *Auth → URL Configuration → Redirect URLs* so the dashboard Magic Link works. Then sign in at :3019 with `hazem.meqdad@curizen.ai`.
 2. **Dedicated n8n** — provision an isolated instance; set its env: `N8N_SHARED_SECRET` (the value generated into `.env.local`), `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (project `izadovsxorpdxfmndgen`), `HANDOVER_TARGET_PHONE`, `DEFAULT_TIMEZONE=Asia/Amman`, `JURISDICTION=JO`. Deploy + activate the 12 workflows, then update the ElevenLabs tool base URL if it changed and run `node scripts/verify_booking.mjs`.
 3. **ElevenLabs voice** — the agent has a working voice; audition/replace if desired.
 4. **Rotate secrets** shared in chat (service-role key, DB password, ElevenLabs/n8n keys).

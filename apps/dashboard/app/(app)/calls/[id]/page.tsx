@@ -16,8 +16,8 @@ export default async function CallDetailPage({ params }: { params: { id: string 
   if (!convo) {
     return (
       <div>
-        <PageHeader titleKey="call_detail_title" />
-        <EmptyState messageKey="call_detail_not_found" />
+        <PageHeader kickerKey="kicker_call_detail" titleKey="call_detail_title" />
+        <EmptyState variant="transcript" messageKey="call_detail_not_found" />
       </div>
     );
   }

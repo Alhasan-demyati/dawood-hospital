@@ -24,11 +24,16 @@ export function LanguageProvider({
 }) {
   const [lang, setLangState] = useState<Lang>(defaultLang);
 
-  // Hydrate from a previously stored preference (client only).
+  // Hydrate from a previously stored preference (client only). Also reconcile
+  // the <html> lang/dir attributes (the server renders the default), so a
+  // reloaded EN session stays LTR and language-aware CSS (e.g. .t-eyebrow) keys
+  // off the correct lang.
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (stored === "ar" || stored === "en") {
       setLangState(stored);
+      document.documentElement.setAttribute("lang", stored);
+      document.documentElement.setAttribute("dir", dirFor(stored));
     }
   }, []);
 

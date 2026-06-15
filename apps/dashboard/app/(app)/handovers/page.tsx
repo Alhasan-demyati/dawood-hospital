@@ -32,9 +32,18 @@ export default async function HandoversPage({ searchParams }: { searchParams: Se
 
   return (
     <div>
-      <PageHeader titleKey="handovers_page_title" actions={<RefreshButton />} />
+      <PageHeader
+        kickerKey="kicker_handovers"
+        titleKey="handovers_page_title"
+        subtitleKey="handovers_page_sub"
+        actions={<RefreshButton />}
+      />
       <HandoversFilters />
-      {rows.length ? <HandoversTable rows={rows} /> : <EmptyState messageKey="handovers_empty" />}
+      {rows.length ? (
+        <HandoversTable rows={rows} />
+      ) : (
+        <EmptyState messageKey="handovers_empty" variant="handovers" />
+      )}
       <Pagination page={page} hasNext={rows.length === PAGE_SIZE} />
     </div>
   );

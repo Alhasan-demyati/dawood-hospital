@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { useLanguage } from "@dawood/shared";
+import { useLanguage, MedicalGlyph } from "@dawood/shared";
 
 // Non-blocking pre-call consent banner (POC scope: always shown).
 export function ConsentBanner() {
@@ -12,15 +12,11 @@ export function ConsentBanner() {
   return (
     <div
       role="note"
-      className="animate-reveal flex w-full items-start gap-3 rounded-2xl border border-border px-4 py-3.5 text-xs leading-relaxed text-text-primary shadow-sm backdrop-blur"
-      style={{ background: "color-mix(in srgb, var(--color-accent-soft) 70%, transparent)" }}
+      className="animate-reveal flex w-full items-start gap-3 rounded-full border border-hairline bg-accent-soft px-4 py-2.5 text-text-primary shadow-sm backdrop-blur t-body-sm"
     >
       {/* <!-- REVIEW WITH LEGAL --> consent copy must be vetted before launch. */}
-      <span className="mt-px grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-accent text-white shadow-sm" aria-hidden>
-        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2}>
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 8h.01M11 12h1v4h1" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+      <span className="mt-px grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent text-white shadow-sm" aria-hidden>
+        <MedicalGlyph name="document" className="h-3.5 w-3.5" strokeWidth={2} />
       </span>
       <p className="pt-0.5">
         <span>{t("consent_banner")}</span>{" "}

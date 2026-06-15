@@ -8,9 +8,9 @@ agent in the dashboard UI. Single agent (no Hayat coordinator).
 | Setting | Value |
 |---|---|
 | **Agent name** | `Salma — Dawood Hospital POC` |
-| **Language** | `ar` (Arabic, default for the whole call) |
-| **Voice ID** | `<voice_id_slot_here>` — pick an ElevenLabs Arabic voice (search "Arabic, female, warm, MSA"). **Audition before launch.** |
-| **Model** | `eleven_multilingual_v2` (most reliable Arabic at time of writing — re-verify when ElevenLabs updates) |
+| **Language** | `en` primary; additional languages `ar` + `de` (the agent is trilingual and switches on request via `language_detection`) |
+| **Voice ID** | `4wf10lgibMnboGJGCLrP` — "Farah" (female, Jordanian Arabic, warm). One consistent voice across all three languages (English/German carry a light Jordanian accent — on-brand for a Jordanian hospital; swap to a neutral multilingual voice, or set a per-language voice override, if you prefer). |
+| **Model** | `eleven_multilingual_v2` (most reliable Arabic; trades a little latency for quality) |
 | **Temperature** | `0.4` |
 | **Max tokens per response** | `1500` |
 | **Tool timeout** | `8000ms` |

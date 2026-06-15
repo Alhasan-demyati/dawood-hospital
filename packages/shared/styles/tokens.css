@@ -51,6 +51,41 @@
   --shadow-lg: 0 30px 70px -18px rgba(11, 41, 38, 0.22);
   --shadow-glow: 0 0 0 1px rgba(21, 125, 118, 0.08), 0 20px 50px -20px rgba(21, 125, 118, 0.4);
 
+  /* --- Redesign additions (additive; brand anchors above are untouched) --- */
+
+  /* Surface ramp — a recessed well + a semantic "raised" alias for overlays */
+  --color-surface-3: #eaf2ee;       /* table headers, transcript wells, code */
+  --color-surface-raised: #ffffff;  /* popovers / drawers (lifts in dark) */
+
+  /* Hairline + a third, fainter text tier */
+  --color-hairline: #e3ece8;        /* faintest in-card separators */
+  --color-text-faint: #88a0a3;      /* timestamps, axis ticks, captions */
+
+  /* Focus ring (accessibility) */
+  --color-ring: #157d76;            /* = accent */
+  --ring-offset: var(--color-surface);
+
+  /* Chart palette — extends the emerald family; DB color_hex still wins.
+   * chart-1/3 reference accents so they auto-shift in dark (var resolves lazily). */
+  --chart-1: var(--color-accent);
+  --chart-2: #0e7490;               /* cyan (was inline in Sidebar) */
+  --chart-3: var(--color-accent-2);
+  --chart-4: #6d8a4f;               /* sage */
+  --chart-5: #b06a4a;               /* clay */
+
+  /* Elevation — a dedicated card shadow, popover shadow, inset top sheen */
+  --shadow-card: 0 1px 2px rgba(11, 41, 38, 0.05), 0 6px 16px -8px rgba(11, 41, 38, 0.12);
+  --shadow-pop: 0 24px 60px -18px rgba(11, 41, 38, 0.28);
+  --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+  /* One reusable atmospheric mesh (emerald overhead + gold low corner) */
+  --gradient-mesh:
+    radial-gradient(60% 42% at 100% -8%, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent 62%),
+    radial-gradient(48% 42% at -6% 110%, color-mix(in srgb, var(--color-accent-2) 9%, transparent), transparent 60%);
+
+  /* Gold is the signature, never the body: hairline lead-ins, kicker ticks, the
+   * emblem stroke + rooftop cross only — never a fill, never body text, ≤1 per card. */
+
   /* Atmospheric grain (baked into bg stacks; behind all content) */
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
 }
@@ -87,6 +122,23 @@
   --shadow-md: 0 14px 36px -10px rgba(0, 0, 0, 0.55);
   --shadow-lg: 0 34px 80px -20px rgba(0, 0, 0, 0.65);
   --shadow-glow: 0 0 0 1px rgba(69, 179, 168, 0.12), 0 24px 60px -22px rgba(69, 179, 168, 0.45);
+
+  /* --- Redesign additions (dark) --- */
+  --color-surface-3: #0a1d23;
+  --color-surface-raised: #143038;
+  --color-hairline: #163139;
+  --color-text-faint: #6b878d;
+  --color-ring: #45b3a8;
+  --ring-offset: var(--color-surface);
+  --chart-2: #38bdf8;
+  --chart-4: #9bbd6e;
+  --chart-5: #d98c6a;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.45), 0 8px 20px -10px rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 28px 70px -18px rgba(0, 0, 0, 0.7);
+  --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --gradient-mesh:
+    radial-gradient(60% 42% at 100% -8%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 62%),
+    radial-gradient(48% 42% at -6% 110%, color-mix(in srgb, var(--color-accent-2) 11%, transparent), transparent 60%);
 
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
 }

@@ -27,5 +27,9 @@ export function CallsTableLive({ rows }: { rows: ConversationListItem[] }) {
     };
   }, [router]);
 
-  return <ConversationsTable rows={rows} highlightId={highlightId} />;
+  return (
+    <div className="animate-reveal">
+      <ConversationsTable rows={rows} highlightId={highlightId} />
+    </div>
+  );
 }

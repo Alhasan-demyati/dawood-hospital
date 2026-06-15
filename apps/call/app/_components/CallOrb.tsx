@@ -69,7 +69,10 @@ export function CallOrb({
   const conversation = useConversation({
     connectionType: ELEVENLABS_CONNECTION_TYPE,
     onConnect: () => onBanner(null),
-    onDisconnect: () => {},
+    // When the call ends — including the agent hanging up via the `end_call`
+    // system tool — clear any banner and let the orb fall back to idle (its
+    // state derives from `conversation.status`, which becomes "disconnected").
+    onDisconnect: () => onBanner(null),
     onMessage: (m) => onMessage(m.source === "user" ? "user" : "agent", m.message),
     onError: () => {
       onBanner(t("callOrb_error"));

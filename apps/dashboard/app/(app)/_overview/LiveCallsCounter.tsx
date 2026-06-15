@@ -14,5 +14,5 @@ export function LiveCallsCounter({ initial }: { initial: number }) {
 
   useEffect(() => subscribeToCalls(() => setCount((c) => c + 1)), []);
 
-  return <BigNumber labelKey="overview_counter_calls_today" value={count} accent="var(--color-accent)" iconKey="phone" delay={0} />;
+  return <BigNumber labelKey="overview_counter_calls_today" value={count} accent="var(--color-accent)" iconKey="phone" motif="phone" live delay={0} />;
 }

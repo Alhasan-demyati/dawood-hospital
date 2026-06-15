@@ -9,13 +9,14 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // dir/lang/data-theme are seeded to Arabic + light for the first paint; the
-  // Language/Theme providers flip them at runtime when the toggles are clicked.
+  // dir/lang/data-theme are seeded to English + light for the first paint (the
+  // voice agent's primary language is English); the Language/Theme providers
+  // flip them at runtime when the toggles are clicked or from saved preference.
   return (
-    <html dir="rtl" lang="ar" data-theme="light" suppressHydrationWarning>
+    <html dir="ltr" lang="en" data-theme="light" suppressHydrationWarning>
       <body>
         <ThemeProvider>
-          <LanguageProvider defaultLang="ar">{children}</LanguageProvider>
+          <LanguageProvider defaultLang="en">{children}</LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

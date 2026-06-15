@@ -1,7 +1,7 @@
 import type { TranslationKey } from "@dawood/shared";
 import { getUCAutomationData } from "@/lib/queries";
 import { Stat } from "@/components/editorial/Stat";
-import { SectionTitle } from "@/components/editorial/SectionTitle";
+import { OverviewSection } from "./OverviewSection";
 
 const UC_LABEL: Record<string, TranslationKey> = {
   "UC-D1": "uc_d1",
@@ -22,8 +22,8 @@ export async function UCAutomationTiles() {
   const rows = await getUCAutomationData();
   return (
     <section>
-      <SectionTitle titleKey="overview_uc_tiles_title" />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <OverviewSection index={3} titleKey="overview_uc_tiles_title" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {rows.map((r, i) => (
           <Stat
             key={r.use_case}

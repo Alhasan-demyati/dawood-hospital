@@ -65,3 +65,72 @@
 .delay-5 {
   animation-delay: 400ms;
 }
+
+/* ============================================================================
+ * VitalLine — the signature EKG/heartbeat motif, shared by both apps.
+ * The SVG path sets --vital-len (its own pathLength) so the trace draws cleanly
+ * at any width. `draw` strokes once on entrance; `loop` runs a travelling pulse.
+ * ==========================================================================*/
+.vital-draw {
+  stroke-dasharray: var(--vital-len, 300);
+  stroke-dashoffset: var(--vital-len, 300);
+  animation: vital-draw 1.5s cubic-bezier(0.32, 0.72, 0, 1) 0.15s both;
+}
+@keyframes vital-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.vital-loop {
+  stroke-dasharray: var(--vital-dash, 34) var(--vital-gap, 240);
+  animation: vital-loop 2.8s linear infinite;
+}
+@keyframes vital-loop {
+  to {
+    stroke-dashoffset: -274;
+  }
+}
+
+/* Soft sweeping shimmer for loading skeletons (gradient must be 200% wide). */
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* A slow drift for decorative section watermarks. */
+.motif-drift {
+  animation: motif-drift 22s ease-in-out infinite;
+}
+@keyframes motif-drift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-reveal,
+  .animate-pulse-dot,
+  .animate-lift,
+  .vital-draw,
+  .vital-loop,
+  .animate-shimmer,
+  .motif-drift {
+    animation: none !important;
+  }
+  .vital-draw {
+    stroke-dashoffset: 0 !important;
+  }
+}

@@ -33,12 +33,17 @@ export default async function CallsPage({ searchParams }: { searchParams: Search
 
   return (
     <div>
-      <PageHeader titleKey="calls_page_title" actions={<RefreshButton />} />
+      <PageHeader
+        kickerKey="kicker_calls"
+        titleKey="calls_page_title"
+        subtitleKey="calls_page_sub"
+        actions={<RefreshButton />}
+      />
       <CallsFilters />
       {rows.length ? (
         <CallsTableLive rows={rows} />
       ) : (
-        <EmptyState messageKey="calls_empty" />
+        <EmptyState messageKey="calls_empty" variant="calls" />
       )}
       <Pagination page={page} hasNext={rows.length === PAGE_SIZE} />
     </div>

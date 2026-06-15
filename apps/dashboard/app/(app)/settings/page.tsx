@@ -13,7 +13,7 @@ export default async function SettingsPage() {
 
   return (
     <div>
-      <PageHeader titleKey="settings_page_title" />
+      <PageHeader kickerKey="kicker_settings" titleKey="settings_page_title" subtitleKey="settings_page_sub" />
       <SettingsView admins={admins} facility={facility} specialties={specialties} />
     </div>
   );

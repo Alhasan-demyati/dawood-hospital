@@ -42,14 +42,14 @@ export function TranscriptStream({ messages }: { messages: TranscriptBubble[] })
 
   if (messages.length === 0) {
     return (
-      <div className="flex min-h-[7rem] w-full items-center justify-center rounded-2xl border border-dashed border-border px-4 text-center text-sm text-text-muted">
+      <div className="flex min-h-[7rem] w-full items-center justify-center rounded-2xl border border-dashed border-border px-4 text-center text-text-muted t-body-sm">
         {t("transcript_empty")}
       </div>
     );
   }
 
   return (
-    <div className="flex max-h-96 w-full flex-col gap-3 overflow-y-auto rounded-2xl border border-border bg-surface p-4">
+    <div className="flex max-h-96 w-full flex-col gap-3 overflow-y-auto rounded-2xl border border-border bg-surface-2 p-4">
       {messages.map((m) => {
         const agent = m.speaker === "agent";
         return (
@@ -57,9 +57,9 @@ export function TranscriptStream({ messages }: { messages: TranscriptBubble[] })
             <Avatar speaker={m.speaker} />
             <p
               className={cn(
-                "animate-reveal max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm",
+                "animate-reveal max-w-[78%] rounded-2xl px-4 py-2.5 shadow-sm t-body-sm",
                 agent
-                  ? "rounded-es-sm bg-accent-soft text-text-primary"
+                  ? "rounded-es-sm border border-hairline bg-surface-raised text-text-primary"
                   : "rounded-ee-sm bg-accent text-white",
               )}
             >

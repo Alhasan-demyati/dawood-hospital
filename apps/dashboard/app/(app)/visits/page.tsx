@@ -38,7 +38,12 @@ export default async function VisitsPage({ searchParams }: { searchParams: Searc
 
   return (
     <div>
-      <PageHeader titleKey="visits_page_title" actions={<RefreshButton />} />
+      <PageHeader
+        kickerKey="kicker_visits"
+        titleKey="visits_page_title"
+        subtitleKey="visits_page_sub"
+        actions={<RefreshButton />}
+      />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat labelKey="visits_kpi_today" value={todayCount} />
@@ -47,7 +52,7 @@ export default async function VisitsPage({ searchParams }: { searchParams: Searc
       </div>
 
       <VisitsFilters specialties={specialties} />
-      {rows.length ? <VisitsTable rows={rows} /> : <EmptyState messageKey="visits_empty" />}
+      {rows.length ? <VisitsTable rows={rows} /> : <EmptyState messageKey="visits_empty" variant="visits" />}
       <Pagination page={page} hasNext={rows.length === PAGE_SIZE} />
     </div>
   );

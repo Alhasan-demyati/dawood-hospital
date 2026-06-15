@@ -47,29 +47,35 @@ export function Stat({
   return (
     <div
       className={cn(
-        "animate-reveal group relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl",
+        "animate-reveal group relative overflow-hidden rounded-2xl border border-border p-5 shadow-card transition duration-300 hover:-translate-y-1 hover:shadow-lg",
         DELAY[delay] ?? "",
         className,
       )}
       style={{ background: `linear-gradient(135deg, color-mix(in srgb, ${accent} 9%, var(--color-surface)) 0%, var(--color-surface) 60%)` }}
     >
-      <div className="flex items-center gap-2">
+      {/* inset top highlight — gives the card a crafted, lit edge */}
+      <span className="pointer-events-none absolute inset-0 rounded-[inherit]" style={{ boxShadow: "var(--highlight-top)" }} aria-hidden />
+
+      <div className="relative flex items-center gap-2">
         <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: accent }} aria-hidden />
-        <span className="text-sm font-medium text-text-primary">{resolvedLabel}</span>
+        <span className="t-eyebrow text-text-primary">{resolvedLabel}</span>
       </div>
-      <div className="mt-2 flex items-baseline gap-1.5">
-        <span className="font-sans text-3xl font-bold tabular-nums text-text-primary">{display}</span>
+      <div className="relative mt-2 flex items-baseline gap-1.5">
+        <span className="t-numeral text-3xl text-text-primary">{display}</span>
         {unit && <span className="text-sm font-semibold" style={{ color: accent }}>{unit}</span>}
         {trendChip && (
-          <span className={cn("ms-1 text-xs font-medium", trend && trend > 0 ? "text-success" : "text-danger")}>{trendChip}</span>
+          <span className={cn("ms-1 text-xs font-medium tabular-nums", trend && trend > 0 ? "text-success" : "text-danger")}>{trendChip}</span>
         )}
       </div>
       {pct != null && (
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-full" style={{ background: `color-mix(in srgb, ${accent} 16%, var(--color-surface))` }} aria-hidden>
-          <div className="h-full rounded-full transition-[width] duration-700 ease-out" style={{ width: `${pct}%`, background: accent }} />
+        <div className="relative mt-3 h-2 w-full overflow-hidden rounded-full" style={{ background: `color-mix(in srgb, ${accent} 16%, var(--color-surface))` }} aria-hidden>
+          <div
+            className="meter-fill h-full origin-left rounded-full"
+            style={{ width: `${pct}%`, background: `linear-gradient(to right, color-mix(in srgb, ${accent} 70%, white), ${accent})` }}
+          />
         </div>
       )}
-      {resolvedSub && <div className="mt-2 text-xs text-text-muted">{resolvedSub}</div>}
+      {resolvedSub && <div className="relative mt-2 border-t border-hairline pt-2 text-xs text-text-muted">{resolvedSub}</div>}
     </div>
   );
 }

@@ -29,6 +29,7 @@ export type ConversationListItem = {
   started_at: string;
   ended_at: string | null;
   caller_phone_masked: string;
+  patient_name: string | null;
   duration_seconds: number | null;
   outcome: string | null;
   use_case: string | null;
@@ -59,11 +60,14 @@ export type ToolCall = {
 function mapConversation(r: any): ConversationListItem {
   const oc = one<any>(r.outcomes);
   const turnAgg = Array.isArray(r.turns) ? (r.turns[0]?.count ?? 0) : 0;
+  const p = one<any>(r.patients);
+  const patientName = p ? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() : "";
   return {
     id: r.id,
     started_at: r.started_at,
     ended_at: r.ended_at ?? null,
     caller_phone_masked: maskPhone(r.caller_phone ?? ""),
+    patient_name: patientName || null,
     duration_seconds: durationSeconds(r.started_at, r.ended_at ?? null),
     outcome: r.outcome ?? null,
     use_case: oc?.use_case ?? null,
@@ -86,7 +90,9 @@ export async function listConversations(filters: {
   const ucJoin = filters.useCase ? "!inner" : "";
   let q = svc
     .from("conversations")
-    .select(`id, started_at, ended_at, caller_phone, outcome, outcomes${ucJoin}(use_case, ces), turns(count)`)
+    .select(
+      `id, started_at, ended_at, caller_phone, outcome, patients(first_name, last_name), outcomes${ucJoin}(use_case, ces), turns(count)`,
+    )
     .order("started_at", { ascending: false })
     .range(offset, offset + limit - 1);
   if (filters.from) q = q.gte("started_at", filters.from.toISOString());
@@ -104,6 +110,7 @@ export async function getConversation(id: string): Promise<ConversationDetail | 
     .from("conversations")
     .select(
       `id, started_at, ended_at, caller_phone, outcome, patient_id, language, elevenlabs_conversation_id,
+       patients(first_name, last_name),
        outcomes(use_case, ces, goal_achieved, ces_declined, notes),
        turns(count),
        handovers(id, triggered_at, conversation_id, reason_code, summary_ar, target_agent_id, completed_at)`,

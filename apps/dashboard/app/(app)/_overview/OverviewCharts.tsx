@@ -1,6 +1,6 @@
 import type { TranslationKey } from "@dawood/shared";
 import { getVisitsTrend, getSpecialtyBreakdown, getStatusBreakdown } from "@/lib/queries";
-import { SectionTitle } from "@/components/editorial/SectionTitle";
+import { OverviewSection } from "./OverviewSection";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { TrendBars } from "@/components/charts/TrendBars";
 import { Donut, type DonutSlice } from "@/components/charts/Donut";
@@ -32,15 +32,15 @@ export async function OverviewCharts() {
 
   return (
     <section>
-      <SectionTitle titleKey="charts_section" />
+      <OverviewSection index={2} titleKey="charts_section" />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <ChartCard titleKey="chart_trend_title" subKey="chart_trend_sub" accent="var(--color-accent)" className="lg:col-span-3">
           <TrendBars points={trend} accent="var(--color-accent)" />
         </ChartCard>
-        <ChartCard titleKey="chart_status_title" accent="#1f9d74" delay={1} className="lg:col-span-2">
+        <ChartCard titleKey="chart_status_title" subKey="chart_status_sub" accent="#1f9d74" delay={1} className="lg:col-span-2">
           <Donut slices={slices} totalLabelKey="chart_total" />
         </ChartCard>
-        <ChartCard titleKey="chart_specialty_title" accent="var(--color-accent-2)" delay={2} className="lg:col-span-5">
+        <ChartCard titleKey="chart_specialty_title" subKey="chart_specialty_sub" accent="var(--color-accent-2)" delay={2} className="lg:col-span-5">
           <SpecialtyBars rows={specialties} />
         </ChartCard>
       </div>

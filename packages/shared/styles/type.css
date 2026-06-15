@@ -1,0 +1,77 @@
+/*
+ * Dawood Hospital type scale — a refined modular system over the existing two
+ * faces: Readex Pro (display) + IBM Plex Sans Arabic (body). No new fonts.
+ * These are plain classes (not Tailwind utilities) so components opt in
+ * explicitly; never double-apply a conflicting Tailwind font-size on the same
+ * element. Tracking is Latin-only — Arabic never gets uppercase/letter-spacing.
+ */
+
+/* ---- Display (Readex Pro) ---- */
+.t-display-xl {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.2rem, 4.6vw, 3.4rem);
+  line-height: 1.04;
+}
+.t-display-lg {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+  line-height: 1.06;
+}
+.t-display-md {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+  line-height: 1.1;
+}
+/* Latin gets tight optical tracking; Arabic stays at its natural spacing. */
+html[lang="en"] .t-display-xl { letter-spacing: -0.02em; }
+html[lang="en"] .t-display-lg { letter-spacing: -0.015em; }
+html[lang="en"] .t-display-md { letter-spacing: -0.01em; }
+
+/* ---- Numerals (metrics) ---- */
+.t-numeral {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.95;
+}
+html[lang="en"] .t-numeral { letter-spacing: -0.01em; }
+
+/* ---- Body (IBM Plex Sans Arabic) ---- */
+.t-body {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+.t-body-sm {
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+.t-caption {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--color-text-faint);
+}
+
+/* ---- Eyebrow / kicker / column labels (RTL-safe) ----
+ * The single fix for the wrong "uppercase tracking" Arabic labels: tracking +
+ * uppercase apply ONLY under html[lang="en"]; Arabic reads at natural spacing. */
+.t-eyebrow {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  color: var(--color-text-muted);
+}
+html[lang="en"] .t-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+html[lang="ar"] .t-eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0;
+}

@@ -6,7 +6,7 @@ import { useLanguage, type TranslationKey } from "@dawood/shared";
 export function SectionTitle({ titleKey, title }: { titleKey?: TranslationKey; title?: string }) {
   const { t } = useLanguage();
   return (
-    <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-text-muted">
+    <h2 className="t-eyebrow mb-3 text-text-muted">
       {title ?? (titleKey ? t(titleKey) : "")}
     </h2>
   );

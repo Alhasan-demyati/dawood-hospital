@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { cn, useLanguage, type TranslationKey } from "@dawood/shared";
+import { cn, useLanguage, MedicalGlyph, type TranslationKey } from "@dawood/shared";
 
 // Shared filter plumbing: all filter bars push state into the URL searchParams
 // so views are shareable and server-rendered. Reused by Calls/Visits/Handovers.
@@ -32,18 +32,25 @@ export function useFilters() {
 }
 
 const fieldClass =
-  "rounded-md border border-border bg-surface px-2.5 py-1.5 text-sm text-text-primary";
+  "rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm text-text-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function FilterBar({ children, onReset }: { children: ReactNode; onReset: () => void }) {
   const { t } = useLanguage();
   return (
-    <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-border bg-surface p-3">
+    <div className="relative mb-4 flex flex-wrap items-end gap-3 overflow-hidden rounded-xl border border-hairline bg-surface-2 p-3 shadow-card">
+      {/* inset top highlight — gives the bar a crafted, lit edge */}
+      <span
+        className="pointer-events-none absolute inset-0 rounded-[inherit]"
+        style={{ boxShadow: "var(--highlight-top)" }}
+        aria-hidden
+      />
       {children}
       <button
         type="button"
         onClick={onReset}
-        className="rounded-md border border-border px-3 py-1.5 text-sm text-text-muted transition hover:bg-accent-soft hover:text-text-primary"
+        className="relative inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-muted transition hover:bg-surface-3 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
+        <MedicalGlyph name="refresh" className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden />
         {t("calls_filter_reset")}
       </button>
     </div>
@@ -53,7 +60,7 @@ export function FilterBar({ children, onReset }: { children: ReactNode; onReset:
 function FieldLabel({ labelKey, label }: { labelKey?: TranslationKey; label?: string }) {
   const { t } = useLanguage();
   return (
-    <span className="mb-1 block text-xs font-medium text-text-muted">
+    <span className="t-eyebrow mb-1 block text-text-faint">
       {label ?? (labelKey ? t(labelKey) : "")}
     </span>
   );
@@ -73,7 +80,7 @@ export function FSelect({
   options: { value: string; label: string }[];
 }) {
   return (
-    <label className="block">
+    <label className="relative block">
       <FieldLabel labelKey={labelKey} label={label} />
       <select className={fieldClass} value={value} onChange={(e) => onChange(e.target.value)}>
         {options.map((o) => (
@@ -98,7 +105,7 @@ export function FDate({
   onChange: (v: string) => void;
 }) {
   return (
-    <label className="block">
+    <label className="relative block">
       <FieldLabel labelKey={labelKey} label={label} />
       <input type="date" dir="ltr" className={fieldClass} value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
@@ -119,7 +126,7 @@ export function FMultiChips({
   onChange: (vals: string[]) => void;
 }) {
   return (
-    <div className="block">
+    <div className="relative block">
       <FieldLabel labelKey={labelKey} label={label} />
       <div className="flex flex-wrap gap-1.5">
         {options.map((o) => {
@@ -130,8 +137,10 @@ export function FMultiChips({
               type="button"
               onClick={() => onChange(on ? selected.filter((x) => x !== o.value) : [...selected, o.value])}
               className={cn(
-                "rounded-full border px-2.5 py-1 text-xs transition",
-                on ? "border-accent bg-accent-soft text-accent" : "border-border text-text-muted hover:bg-accent-soft",
+                "rounded-full border px-2.5 py-1 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                on
+                  ? "border-accent bg-accent font-semibold text-white shadow-sm"
+                  : "border-border text-text-muted hover:bg-surface-2 hover:text-text-primary",
               )}
             >
               {o.label}
@@ -163,7 +172,7 @@ export function FText({
     if (local !== value) onChange(local);
   };
   return (
-    <label className="block">
+    <label className="relative block">
       <FieldLabel labelKey={labelKey} label={label} />
       <input
         type="text"

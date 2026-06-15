@@ -145,6 +145,12 @@ export default function CallPage() {
         </div>
         <TrustCards />
       </section>
+
+      <footer className="relative z-10 pb-6 text-center">
+        <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-text-muted">
+          Powered by Curizen
+        </span>
+      </footer>
     </main>
   );
 }

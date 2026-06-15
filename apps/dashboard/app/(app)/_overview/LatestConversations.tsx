@@ -1,5 +1,5 @@
 import { getLatestConversations } from "@/lib/queries";
-import { SectionTitle } from "@/components/editorial/SectionTitle";
+import { OverviewSection } from "./OverviewSection";
 import { EmptyState } from "@/components/editorial/EmptyState";
 import { ConversationsTable } from "@/components/ConversationsTable";
 
@@ -8,7 +8,7 @@ export async function LatestConversations() {
   const rows = await getLatestConversations(10);
   return (
     <section>
-      <SectionTitle titleKey="overview_latest_conversations" />
+      <OverviewSection index={4} titleKey="overview_latest_conversations" metaKey="overview_latest_sub" />
       {rows.length ? <ConversationsTable rows={rows} /> : <EmptyState messageKey="calls_empty" />}
     </section>
   );

@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@300;400;500;600;700&display=swap");
 @import "../../../packages/shared/styles/tokens.css";
 @import "../../../packages/shared/styles/animations.css";
+@import "../../../packages/shared/styles/type.css";
 
 @tailwind base;
 @tailwind components;
@@ -58,6 +59,73 @@ body {
   to { transform: scale(1) rotate(0); opacity: 1; }
 }
 
+/* Donut ring segments draw clockwise from their start offset. */
+.ring-seg {
+  animation: ring-draw 0.9s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+@keyframes ring-draw {
+  from { stroke-dashoffset: var(--ring-len); }
+  to { stroke-dashoffset: var(--ring-off); }
+}
+
+/* The trend sparkline traces itself across the bar tops. */
+.spark-line {
+  stroke-dasharray: var(--spark-len);
+  stroke-dashoffset: var(--spark-len);
+  animation: spark-draw 1.1s cubic-bezier(0.32, 0.72, 0, 1) 0.15s both;
+}
+@keyframes spark-draw {
+  to { stroke-dashoffset: 0; }
+}
+.spark-area {
+  transform-origin: bottom;
+  animation: area-rise 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s both;
+}
+@keyframes area-rise {
+  from { opacity: 0; transform: scaleY(0.4); }
+  to { opacity: 1; transform: scaleY(1); }
+}
+
+/* A meter bar that fills to its target width (KPI vitals). */
+.meter-fill {
+  animation: meter-grow 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s both;
+}
+@keyframes meter-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* One-pass diagonal sheen used on the masthead + vital cards on entrance. */
+.sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 30%, color-mix(in srgb, var(--color-surface) 70%, white) 48%, transparent 66%);
+  transform: translateX(-130%);
+  animation: sheen-sweep 1.5s cubic-bezier(0.4, 0, 0.2, 1) 0.25s both;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+}
+@keyframes sheen-sweep {
+  to { transform: translateX(130%); }
+}
+
+/* The timeline node ring breathes once, drawing the eye to the rail. */
+.node-pop {
+  animation: node-pop 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes node-pop {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .chart-bar, .chart-grow, .donut-wrap { animation: none !important; transform: none !important; }
+  .chart-bar, .chart-grow, .donut-wrap, .ring-seg, .spark-line, .spark-area,
+  .meter-fill, .node-pop {
+    animation: none !important;
+    transform: none !important;
+    stroke-dashoffset: var(--ring-off, 0) !important;
+  }
+  .sheen::after { animation: none !important; display: none; }
 }
