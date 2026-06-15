@@ -21,17 +21,28 @@ Postgres function. Create it once against your Supabase database before
 the smoke test (the trigram index already exists from migration `0001`):
 
 ```sql
+-- Trilingual scoring: matches the complaint against the Arabic, English, AND
+-- German symptom patterns (see migration 0007_multilingual_triage.sql). The
+-- agent is English-primary with Arabic + German on request, so all three score.
 create or replace function public.suggest_specialty_score(complaint text)
 returns table (specialty_id uuid, name_ar text, name_en text, code text, color_hex text, score real)
 language sql
 stable
 as $$
   select s.id, s.name_ar, s.name_en, s.code, s.color_hex,
-         (greatest(similarity(p.pattern_ar, complaint), 0) * p.weight)::real as score
+         (greatest(
+            similarity(p.pattern_ar, complaint),
+            similarity(coalesce(p.pattern_en, ''), complaint),
+            similarity(coalesce(p.pattern_de, ''), complaint),
+            0) * p.weight)::real as score
     from public.chief_complaint_patterns p
     join public.specialties s on s.id = p.specialty_id
    where p.pattern_ar % complaint
+      or coalesce(p.pattern_en, '') % complaint
+      or coalesce(p.pattern_de, '') % complaint
       or similarity(p.pattern_ar, complaint) > 0.15
+      or similarity(coalesce(p.pattern_en, ''), complaint) > 0.15
+      or similarity(coalesce(p.pattern_de, ''), complaint) > 0.15
    order by score desc
    limit 5;
 $$;

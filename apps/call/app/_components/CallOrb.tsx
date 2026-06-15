@@ -136,6 +136,12 @@ export function CallOrb({
     conversation.startSession({
       agentId,
       connectionType: ELEVENLABS_CONNECTION_TYPE,
+      // Force the conversation to OPEN in the UI language (English by default).
+      // The agent's primary language is Arabic (so it can use the fast
+      // multilingual `turbo_v2_5` model — English-primary agents are capped to
+      // the slower multilingual_v2), so we must override the start language per
+      // call; the caller can still switch in-call via language_detection.
+      overrides: { agent: { language: lang } },
       dynamicVariables: buildDynamicVariables({ language: lang }),
     });
   }, [agentId, connected, connecting, conversation, lang, t, onBanner, onCallStart, flash]);
