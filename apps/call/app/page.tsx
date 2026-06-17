@@ -137,7 +137,7 @@ export default function CallPage() {
             aria-hidden
           />
           <div
-            className="relative flex w-full justify-center overflow-hidden rounded-[28px] border border-border px-3 py-12 shadow-lg backdrop-blur-xl sm:px-12 sm:py-14"
+            className="relative flex w-full justify-center overflow-hidden rounded-[28px] border border-border px-3 py-8 shadow-lg backdrop-blur-xl sm:px-12 sm:py-10"
             style={{ background: "color-mix(in srgb, var(--color-surface) 60%, transparent)" }}
           >
             <CallStage agentId={agentId} />

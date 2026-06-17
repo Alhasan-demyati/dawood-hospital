@@ -45,7 +45,9 @@ export function CallStage({ agentId }: { agentId: string }) {
           onCallStart={clearMessages}
         />
 
-        {flags.showTranscript && <TranscriptStream messages={messages} />}
+        {/* The transcript appears only once the conversation has produced text —
+            an empty placeholder before the call just competes with the orb. */}
+        {flags.showTranscript && messages.length > 0 && <TranscriptStream messages={messages} />}
       </div>
     </ConversationProvider>
   );

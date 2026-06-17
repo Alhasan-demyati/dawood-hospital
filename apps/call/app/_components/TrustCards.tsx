@@ -18,7 +18,7 @@ export function TrustCards() {
       {CARDS.map(({ key, glyph, tint, delay }) => (
         <div
           key={key}
-          className={`animate-reveal ${delay} group relative flex flex-col items-center gap-3.5 overflow-hidden rounded-2xl border border-border p-5 text-center shadow-card transition duration-300 hover:-translate-y-1 hover:shadow-md`}
+          className={`animate-reveal ${delay} group relative flex flex-col items-center gap-3 overflow-hidden rounded-2xl border border-border p-5 text-center shadow-card transition duration-300 hover:-translate-y-0.5 hover:shadow-md`}
           style={{ background: `linear-gradient(180deg, color-mix(in srgb, ${tint} 6%, var(--color-surface)), var(--color-surface))` }}
         >
           {/* inset lit edge */}
@@ -33,7 +33,7 @@ export function TrustCards() {
           >
             <MedicalGlyph name={glyph} className="h-5 w-5" />
           </span>
-          <p className="relative text-text-muted t-caption">{t(key)}</p>
+          <p className="relative max-w-[22ch] text-text-muted t-body-sm">{t(key)}</p>
         </div>
       ))}
     </div>

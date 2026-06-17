@@ -12,7 +12,7 @@ export function ConsentBanner() {
   return (
     <div
       role="note"
-      className="animate-reveal flex w-full items-start gap-3 rounded-full border border-hairline bg-accent-soft px-4 py-2.5 text-text-primary shadow-sm backdrop-blur t-body-sm"
+      className="animate-reveal flex w-full items-start gap-3 rounded-2xl border border-hairline bg-accent-soft px-4 py-3 text-text-primary shadow-sm backdrop-blur t-body-sm"
     >
       {/* <!-- REVIEW WITH LEGAL --> consent copy must be vetted before launch. */}
       <span className="mt-px grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent text-white shadow-sm" aria-hidden>
