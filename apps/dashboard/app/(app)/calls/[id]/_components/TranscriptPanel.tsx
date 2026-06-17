@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn, useLanguage } from "@dawood/shared";
 import type { Turn } from "@/lib/queries";
-import { formatArabicTime } from "@/lib/format";
+import { formatTime } from "@/lib/format";
 import { subscribeToTurns } from "@/lib/realtime";
 import { EmptyState } from "@/components/editorial/EmptyState";
 
@@ -19,7 +19,7 @@ export function TranscriptPanel({
   initial: Turn[];
   live: boolean;
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [turns, setTurns] = useState<Turn[]>(initial);
   const endRef = useRef<HTMLDivElement | null>(null);
 
@@ -61,7 +61,7 @@ export function TranscriptPanel({
               )}
             >
               <p className="t-body-sm leading-relaxed">{tn.content_ar}</p>
-              <time className="t-caption mt-1 block text-text-faint">{formatArabicTime(tn.spoken_at)}</time>
+              <time className="t-caption mt-1 block text-text-faint">{formatTime(tn.spoken_at, lang)}</time>
             </div>
           </div>
         );

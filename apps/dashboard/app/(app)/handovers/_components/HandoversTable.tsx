@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn, useLanguage, MedicalGlyph, type TranslationKey } from "@dawood/shared";
 import type { HandoverDetail } from "@/lib/queries";
-import { formatArabicDateTime } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import { subscribeToHandovers } from "@/lib/realtime";
 
 const REASON_KEY: Record<string, TranslationKey> = {
@@ -45,7 +45,7 @@ function truncate(s: string, n = 120): string {
 
 export function HandoversTable({ rows }: { rows: HandoverDetail[] }) {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -108,7 +108,7 @@ export function HandoversTable({ rows }: { rows: HandoverDetail[] }) {
                       <MedicalGlyph name="handover" className="h-3.5 w-3.5" strokeWidth={1.8} />
                     </span>
                   </td>
-                  <td className="px-3.5 py-2.5 text-text-faint">{formatArabicDateTime(r.triggered_at)}</td>
+                  <td className="px-3.5 py-2.5 text-text-faint">{formatDateTime(r.triggered_at, lang)}</td>
                   <td className="px-3.5 py-2.5">
                     <span
                       className={cn(
@@ -128,7 +128,7 @@ export function HandoversTable({ rows }: { rows: HandoverDetail[] }) {
                   <td className="px-3.5 py-2.5 tabular-nums text-text-muted" dir="ltr">{r.target_agent_id || "—"}</td>
                   <td className="px-3.5 py-2.5">
                     {r.completed_at ? (
-                      <span className="text-text-faint">{formatArabicDateTime(r.completed_at)}</span>
+                      <span className="text-text-faint">{formatDateTime(r.completed_at, lang)}</span>
                     ) : (
                       <span
                         className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium text-warning"

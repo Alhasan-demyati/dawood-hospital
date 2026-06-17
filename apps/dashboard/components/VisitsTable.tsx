@@ -2,7 +2,8 @@
 
 import { cn, useLanguage, type TranslationKey } from "@dawood/shared";
 import type { VisitListItem } from "@/lib/queries";
-import { formatArabicDateTime, formatBookingReference } from "@/lib/format";
+import { formatDateTime, formatBookingReference } from "@/lib/format";
+import { pickSpecialty, pickVisitType } from "@/lib/visit-i18n";
 
 const STATUS_KEY: Record<string, TranslationKey> = {
   scheduled: "status_scheduled",
@@ -22,7 +23,7 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 export function VisitsTable({ rows }: { rows: VisitListItem[] }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   return (
     <div className="relative overflow-x-auto rounded-2xl border border-border bg-surface shadow-card">
       {/* inset top highlight — a crafted, lit edge */}
@@ -50,9 +51,9 @@ export function VisitsTable({ rows }: { rows: VisitListItem[] }) {
               {/* booking ref stays Western digits, dir-safe */}
               <td className="px-3.5 py-2.5 font-medium tabular-nums text-text-primary" dir="ltr">{formatBookingReference(r.booking_reference)}</td>
               <td className="px-3.5 py-2.5 text-text-primary">{r.patient_name || "—"}</td>
-              <td className="px-3.5 py-2.5 text-text-faint">{formatArabicDateTime(r.scheduled_start)}</td>
-              <td className="px-3.5 py-2.5 text-text-primary">{r.specialty_name_ar}</td>
-              <td className="px-3.5 py-2.5 text-text-muted">{r.visit_type}</td>
+              <td className="px-3.5 py-2.5 text-text-faint">{formatDateTime(r.scheduled_start, lang)}</td>
+              <td className="px-3.5 py-2.5 text-text-primary">{pickSpecialty(lang, { code: r.specialty_code, ar: r.specialty_name_ar, en: r.specialty_name_en })}</td>
+              <td className="px-3.5 py-2.5 text-text-muted">{pickVisitType(lang, { code: r.visit_type_code, ar: r.visit_type_name_ar, en: r.visit_type_name_en })}</td>
               {/* phone stays Western digits, dir-safe */}
               <td className="px-3.5 py-2.5 tabular-nums text-text-muted" dir="ltr">{r.patient_phone_masked || "—"}</td>
               <td className="px-3.5 py-2.5">
@@ -66,7 +67,7 @@ export function VisitsTable({ rows }: { rows: VisitListItem[] }) {
                   {STATUS_KEY[r.status] ? t(STATUS_KEY[r.status]) : r.status}
                 </span>
               </td>
-              <td className="px-3.5 py-2.5 text-text-faint">{formatArabicDateTime(r.created_at)}</td>
+              <td className="px-3.5 py-2.5 text-text-faint">{formatDateTime(r.created_at, lang)}</td>
             </tr>
           ))}
         </tbody>

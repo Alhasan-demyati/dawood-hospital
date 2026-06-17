@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLanguage, MedicalGlyph, type TranslationKey, type GlyphName } from "@dawood/shared";
 import type { ActivityFeedItem } from "@/lib/queries";
-import { formatArabicDateTime } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import { subscribeToHandovers } from "@/lib/realtime";
 import { EmptyState } from "@/components/editorial/EmptyState";
 
@@ -20,7 +20,7 @@ const KIND: Record<Kind, { color: string; tagKey: TranslationKey; glyph: GlyphNa
 // typed nodes; each event is a card with a kind tag + timestamp. New handovers
 // stream in at the top, live. Reads correctly in LTR/RTL (logical insets).
 export function ActivityFeedView({ initial }: { initial: ActivityFeedItem[] }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [items, setItems] = useState(initial);
 
   useEffect(() => setItems(initial), [initial]);
@@ -81,7 +81,7 @@ export function ActivityFeedView({ initial }: { initial: ActivityFeedItem[] }) {
                 >
                   {t(meta.tagKey)}
                 </span>
-                <time className="t-caption ms-auto tabular-nums text-text-faint">{formatArabicDateTime(it.happened_at)}</time>
+                <time className="t-caption ms-auto tabular-nums text-text-faint">{formatDateTime(it.happened_at, lang)}</time>
               </div>
               <div className="text-sm leading-snug text-text-primary">
                 {it.link_to ? (

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { cn, useLanguage, type TranslationKey } from "@dawood/shared";
 import type { ConversationDetail, ToolCall, Turn } from "@/lib/queries";
-import { formatArabicDateTime, formatDurationMMSS, toArabicIndicDigits } from "@/lib/format";
+import { formatDateTime, formatDurationMMSS, toArabicIndicDigits } from "@/lib/format";
 import { PageHeader } from "@/components/editorial/PageHeader";
 import { RefreshButton } from "@/components/editorial/RefreshButton";
 import { SectionTitle } from "@/components/editorial/SectionTitle";
@@ -88,7 +88,7 @@ export function CallDetailView({
 
       {/* Meta strip — case-file header line */}
       <div className="mb-6 flex flex-wrap items-center gap-x-8 gap-y-4 rounded-xl border border-hairline bg-surface p-4 shadow-card">
-        <Meta label={t("calls_col_started_at")} value={formatArabicDateTime(convo.started_at)} />
+        <Meta label={t("calls_col_started_at")} value={formatDateTime(convo.started_at, lang)} />
         <Meta label={t("calls_col_duration")} value={formatDurationMMSS(convo.duration_seconds, ar)} />
         <Meta
           label={t("col_phone")}

@@ -174,8 +174,12 @@ export type VisitListItem = {
   booking_reference: string;
   scheduled_start: string;
   specialty_id: string;
+  specialty_code: string;
   specialty_name_ar: string;
-  visit_type: string;
+  specialty_name_en: string;
+  visit_type_code: string;
+  visit_type_name_ar: string;
+  visit_type_name_en: string;
   patient_id: string;
   patient_name: string | null;
   patient_phone_masked: string;
@@ -188,6 +192,7 @@ export type VisitDetail = VisitListItem & {
   notes_internal: string | null;
 };
 function mapVisit(r: any): VisitListItem {
+  const sp = one<any>(r.specialties);
   const vt = one<any>(r.visit_types);
   const p = one<any>(r.patients);
   const patientName = p ? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() : "";
@@ -196,8 +201,12 @@ function mapVisit(r: any): VisitListItem {
     booking_reference: r.booking_reference,
     scheduled_start: r.scheduled_start,
     specialty_id: r.specialty_id,
-    specialty_name_ar: one<any>(r.specialties)?.name_ar ?? "",
-    visit_type: vt?.name_ar ?? vt?.code ?? "",
+    specialty_code: sp?.code ?? "",
+    specialty_name_ar: sp?.name_ar ?? "",
+    specialty_name_en: sp?.name_en ?? "",
+    visit_type_code: vt?.code ?? "",
+    visit_type_name_ar: vt?.name_ar ?? "",
+    visit_type_name_en: vt?.name_en ?? "",
     patient_id: r.patient_id,
     patient_name: patientName || null,
     patient_phone_masked: maskPhone(p?.phone_e164 ?? ""),
@@ -223,7 +232,7 @@ export async function listVisits(filters: {
     .from("visits")
     .select(
       `id, booking_reference, scheduled_start, specialty_id, visit_type_id, patient_id, status, created_at,
-       specialties(name_ar), visit_types(name_ar, code), patients${join}(first_name, last_name, phone_e164)`,
+       specialties(code, name_ar, name_en), visit_types(code, name_ar, name_en), patients${join}(first_name, last_name, phone_e164)`,
     )
     .order("scheduled_start", { ascending: filters.order === "asc" })
     .range(offset, offset + limit - 1);
@@ -242,7 +251,7 @@ export async function getVisit(id: string): Promise<VisitDetail | null> {
     .from("visits")
     .select(
       `id, booking_reference, scheduled_start, specialty_id, visit_type_id, patient_id, status, created_at, notes,
-       specialties(name_ar), visit_types(name_ar, code), patients(first_name, last_name, phone_e164),
+       specialties(code, name_ar, name_en), visit_types(code, name_ar, name_en), patients(first_name, last_name, phone_e164),
        visit_intake(chief_complaint, suggested_specialty_id)`,
     )
     .eq("id", id)

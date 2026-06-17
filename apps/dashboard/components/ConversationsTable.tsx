@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { cn, useLanguage, type TranslationKey } from "@dawood/shared";
 import type { ConversationListItem } from "@/lib/queries";
-import { formatArabicDateTime, formatDurationMMSS, toArabicIndicDigits } from "@/lib/format";
+import { formatDateTime, formatDurationMMSS, toArabicIndicDigits } from "@/lib/format";
 
 const OUTCOME_KEY: Record<string, TranslationKey> = {
   completed_automated: "outcome_completed_automated",
@@ -97,7 +97,7 @@ export function ConversationsTable({
                   href={`/calls/${r.id}`}
                   className="font-medium text-text-primary transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <span className="t-caption text-text-faint">{formatArabicDateTime(r.started_at)}</span>
+                  <span className="t-caption text-text-faint">{formatDateTime(r.started_at, lang)}</span>
                 </Link>
               </td>
               <td className="px-3 py-2.5 text-text-muted" dir="ltr">{r.caller_phone_masked || "—"}</td>

@@ -1,7 +1,8 @@
-// Arabic-first formatting helpers for the dashboard.
-// Dates always render in the facility timezone (Asia/Amman) with Arabic-Indic
-// numerals. Identifiers (phone, booking ref) keep Western digits per the
-// master briefing's numeral convention.
+// Locale-aware formatting helpers for the dashboard.
+// Dates render in the facility timezone (Asia/Amman); Arabic uses Arabic-Indic
+// numerals, English/German use Western digits. Identifiers (phone, booking ref)
+// keep Western digits per the master briefing's numeral convention.
+import type { Lang } from "@dawood/shared";
 
 const DEFAULT_TZ = process.env.DEFAULT_TIMEZONE || "Asia/Amman";
 
@@ -24,8 +25,13 @@ function asDate(d: Date | string | number): Date {
   return d instanceof Date ? d : new Date(d);
 }
 
-export function formatArabicDate(d: Date | string | number, tz: string = DEFAULT_TZ): string {
-  return new Intl.DateTimeFormat(AR_LOCALE, {
+/** ICU locale per UI language; Arabic pins the Arabic-Indic numbering system. */
+export function localeForLang(lang: Lang): string {
+  return lang === "ar" ? AR_LOCALE : lang === "de" ? "de-DE" : "en-US";
+}
+
+export function formatDate(d: Date | string | number, lang: Lang, tz: string = DEFAULT_TZ): string {
+  return new Intl.DateTimeFormat(localeForLang(lang), {
     timeZone: tz,
     weekday: "short",
     day: "numeric",
@@ -34,16 +40,29 @@ export function formatArabicDate(d: Date | string | number, tz: string = DEFAULT
   }).format(asDate(d));
 }
 
-export function formatArabicTime(d: Date | string | number, tz: string = DEFAULT_TZ): string {
-  return new Intl.DateTimeFormat(AR_LOCALE, {
+export function formatTime(d: Date | string | number, lang: Lang, tz: string = DEFAULT_TZ): string {
+  return new Intl.DateTimeFormat(localeForLang(lang), {
     timeZone: tz,
     hour: "2-digit",
     minute: "2-digit",
   }).format(asDate(d));
 }
 
+export function formatDateTime(d: Date | string | number, lang: Lang, tz: string = DEFAULT_TZ): string {
+  return `${formatDate(d, lang, tz)} · ${formatTime(d, lang, tz)}`;
+}
+
+// Arabic-only convenience wrappers (server-side / fixed-Arabic call sites).
+export function formatArabicDate(d: Date | string | number, tz: string = DEFAULT_TZ): string {
+  return formatDate(d, "ar", tz);
+}
+
+export function formatArabicTime(d: Date | string | number, tz: string = DEFAULT_TZ): string {
+  return formatTime(d, "ar", tz);
+}
+
 export function formatArabicDateTime(d: Date | string | number, tz: string = DEFAULT_TZ): string {
-  return `${formatArabicDate(d, tz)} · ${formatArabicTime(d, tz)}`;
+  return formatDateTime(d, "ar", tz);
 }
 
 /** Format a Jordan E.164 number for display (grouped). Western digits. */
