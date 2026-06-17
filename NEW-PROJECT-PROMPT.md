@@ -16,8 +16,8 @@ Build order (each phase must be green before the next): **tokens → type & moti
 
 **Dawood Hospital** is a Jordanian hospital. Two Next.js apps share one design system in an npm‑workspaces monorepo:
 
-1. **`apps/call`** (port **3018**) — a calm, premium **patient‑facing voice assistant** page. A caller taps a glowing voice **orb** and talks to "Salma", an ElevenLabs voice agent, to book/триage/ask. Shows a live transcript, a consent notice, and trust cards over a serene hospital‑campus skyline.
-2. **`apps/dashboard`** (port **3019**) — an **operations dashboard** for hospital staff: live KPIs, call logs + transcripts, visits, human handovers, and settings. Realtime‑updating, magic‑link auth.
+1. **`apps/call`** (port **3020**) — a calm, premium **patient‑facing voice assistant** page. A caller taps a glowing voice **orb** and talks to "Salma", an ElevenLabs voice agent, to book/триage/ask. Shows a live transcript, a consent notice, and trust cards over a serene hospital‑campus skyline.
+2. **`apps/dashboard`** (port **3021**) — an **operations dashboard** for hospital staff: live KPIs, call logs + transcripts, visits, human handovers, and settings. Realtime‑updating, magic‑link auth.
 
 Both are **Arabic‑first** (default `lang=ar`, `dir=rtl`), instantly switchable to English (LTR), with a polished light **and** dark theme. Backend is **Supabase** (Postgres + RLS + Realtime). The voice agent runs on **ElevenLabs**; tool calls are fulfilled by **n8n** webhooks (out of scope to build — just persist their telemetry).
 
@@ -33,7 +33,7 @@ The product's signature: **a single gold "vital line" (EKG/heartbeat) motif thre
 - **Supabase**: `@supabase/ssr` (browser + server cookie clients) and `@supabase/supabase-js` (service‑role). RLS on; Realtime publication for live inserts.
 - **ElevenLabs**: `@elevenlabs/react` (`useConversation`, **websocket** connection).
 - **Fonts via Google Fonts** `@import`: **IBM Plex Sans Arabic** (body) + **Readex Pro** (display). No other font families.
-- Per‑app scripts: `next dev -p 3018|3019`, `build`, `start`, `lint`, `typecheck (tsc --noEmit)`.
+- Per‑app scripts: `dev` / `start` (server port read from each app's `.env.local` `PORT` via dotenv-cli — call 3020, dashboard 3021), `build`, `lint`, `typecheck (tsc --noEmit)`.
 
 ---
 
@@ -57,11 +57,11 @@ The product's signature: **a single gold "vital line" (EKG/heartbeat) motif thre
 │  ├─ styles/{tokens.css,type.css,animations.css}
 │  ├─ tailwind/preset.ts
 │  └─ tsconfig.json
-├─ apps/call/                  # @dawood/call  (port 3018)
+├─ apps/call/                  # @dawood/call  (port 3020)
 │  ├─ app/{layout.tsx,page.tsx,globals.css,loading.tsx,privacy/page.tsx,_components/*}
 │  ├─ lib/{elevenlabs.ts,date-context.ts}
 │  ├─ tailwind.config.ts, postcss.config.mjs, tsconfig.json, package.json
-└─ apps/dashboard/             # @dawood/dashboard  (port 3019)
+└─ apps/dashboard/             # @dawood/dashboard  (port 3021)
    ├─ app/{layout.tsx, (app)/*, login/*, auth/callback, globals.css}
    ├─ components/*  (DashboardShell, Sidebar, editorial/*, charts/*, filters/*, tables)
    ├─ lib/{queries.ts,kpis.ts,supabase.ts,supabase-server.ts,realtime.ts,format.ts}
@@ -315,6 +315,6 @@ Provide `supabase/seed.sql` seeding the single facility (`dawood_main`), the 7 s
 - Preserve: server/client split, `force-dynamic`, `<Suspense>` slots, query return shapes, provider order, `html dir/lang`, RTL logical properties, reduced‑motion guards, focus‑visible rings. **Never** slash‑opacity on token colors. Gold stays a signature accent only.
 
 ## 10. Acceptance checklist (Definition of Done)
-☐ Monorepo runs with one `npm run dev` (call 3018, dashboard 3019). ☐ Tokens/preset/type/animations/graphics exactly as specified; light+dark both polished. ☐ i18n ar/en parity compile‑asserted; toggles flip content + `dir`/`lang`; Arabic‑Indic digits. ☐ Supabase schema + seed; queries typed; browser client hardened; realtime live. ☐ Call orb connects to ElevenLabs (websocket) and streams transcript; skyline + VitalLine present. ☐ All 7 dashboard routes built to the Clinical Atelier bar. ☐ typecheck + lint + build green; screenshot matrix reviewed. 
+☐ Monorepo runs with one `npm run dev` (call 3020, dashboard 3021). ☐ Tokens/preset/type/animations/graphics exactly as specified; light+dark both polished. ☐ i18n ar/en parity compile‑asserted; toggles flip content + `dir`/`lang`; Arabic‑Indic digits. ☐ Supabase schema + seed; queries typed; browser client hardened; realtime live. ☐ Call orb connects to ElevenLabs (websocket) and streams transcript; skyline + VitalLine present. ☐ All 7 dashboard routes built to the Clinical Atelier bar. ☐ typecheck + lint + build green; screenshot matrix reviewed. 
 
 > Build phase‑by‑phase, verifying after each. Prioritize the design system and a single beautiful screen (the overview) before breadth — the bar is "premium, modern, unmistakably medical, and unmistakably *crafted*."

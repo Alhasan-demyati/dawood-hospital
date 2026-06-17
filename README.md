@@ -13,8 +13,8 @@ source of truth**. This step (02) produces only the empty monorepo scaffold.
 ## Layout
 
 ```
-apps/call/        @dawood/call       — public ElevenLabs orb (port 3018)
-apps/dashboard/   @dawood/dashboard  — internal ops dashboard (port 3019)
+apps/call/        @dawood/call       — public ElevenLabs orb (port 3020)
+apps/dashboard/   @dawood/dashboard  — internal ops dashboard (port 3021)
 packages/shared/  @dawood/shared     — i18n, theme, design tokens, UI atoms
 ```
 
@@ -31,8 +31,8 @@ npm install        # at the repo root; installs all workspaces + creates the loc
 ## Run
 
 ```bash
-npm run dev:call        # http://localhost:3018
-npm run dev:dashboard   # http://localhost:3019
+npm run dev:call        # http://localhost:3020
+npm run dev:dashboard   # http://localhost:3021
 ```
 
 Other scripts: `npm run build`, `npm run typecheck`, `npm run lint`

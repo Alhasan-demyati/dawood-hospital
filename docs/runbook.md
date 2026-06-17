@@ -16,8 +16,8 @@ facility, Jordan jurisdiction (Asia/Amman, +962). The agent persona is
 
 ```bash
 npm install
-npm run dev:call        # call app  → http://localhost:3018
-npm run dev:dashboard   # dashboard → http://localhost:3019
+npm run dev:call        # call app  → http://localhost:3020
+npm run dev:dashboard   # dashboard → http://localhost:3021
 ```
 
 Root `package.json` exposes workspace-aware scripts: `dev:call`,
@@ -70,7 +70,7 @@ Audition an Arabic voice and write its id into `elevenlabs/agent_settings.md`
 
 ## 5. Env vars
 
-| Var | call (3018) | dashboard (3019) | n8n | scripts |
+| Var | call (3020) | dashboard (3021) | n8n | scripts |
 |---|:---:|:---:|:---:|:---:|
 | `NEXT_PUBLIC_ELEVENLABS_AGENT_ID` | ✅ | | | |
 | `NEXT_PUBLIC_SUPABASE_URL` | | ✅ | | |
@@ -95,7 +95,7 @@ if a transcript/export ever leaks them.
 node scripts/verify_booking.mjs   # expects steps 1–7 PASS (step 8 optional)
 ```
 
-Then place a real call in `apps/call` (3018) and watch the dashboard
+Then place a real call in `apps/call` (3020) and watch the dashboard
 overview tiles move in realtime. Walk the five dashboard pages and confirm
 counts move when a test call lands. (Telemetry tables are unseeded, so
 `/calls`, `/handovers`, and overview KPIs read zero/empty until live calls

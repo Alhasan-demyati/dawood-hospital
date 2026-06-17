@@ -69,6 +69,6 @@ asks "هل أستطيع مساعدتكم بشيء آخر؟", and closes with a C
 ## 7. Save the agent id for the call app
 
 Set `NEXT_PUBLIC_ELEVENLABS_AGENT_ID` in `apps/call/.env.local`, then
-`npm run dev:call` (3018) and click the orb to start a live session. The call
+`npm run dev:call` (3020) and click the orb to start a live session. The call
 app injects the `current_date_info` (21-day Amman reference) and `language`
 dynamic variables at session start.
