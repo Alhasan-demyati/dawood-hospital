@@ -25,7 +25,7 @@ export function TrendBars({ points, accent = "var(--color-accent)" }: { points: 
 
   const label = (iso: string) => {
     const d = new Date(`${iso}T00:00:00`);
-    const loc = lang === "ar" ? "ar-JO-u-nu-arab" : "en-US";
+    const loc = lang === "ar" ? "ar-JO-u-nu-arab" : lang === "de" ? "de-DE" : "en-US";
     return {
       wd: new Intl.DateTimeFormat(loc, { weekday: "narrow" }).format(d),
       dm: new Intl.DateTimeFormat(loc, { day: "numeric" }).format(d),

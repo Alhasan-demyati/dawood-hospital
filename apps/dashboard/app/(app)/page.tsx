@@ -62,10 +62,17 @@ export default function OverviewPage() {
     month: "long",
     year: "numeric",
   }).format(now);
+  const dateDe = new Intl.DateTimeFormat("de-DE", {
+    timeZone: TZ,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(now);
 
   return (
     <div>
-      <OverviewMasthead date={{ ar: dateAr, en: dateEn }} />
+      <OverviewMasthead date={{ ar: dateAr, en: dateEn, de: dateDe }} />
 
       <div className="space-y-12">
         <Suspense

@@ -1,4 +1,4 @@
-export { dict } from "./dictionary";
+export { dict, LANGS } from "./dictionary";
 export type { TranslationKey } from "./dictionary";
 export { LanguageProvider, LanguageContext } from "./LanguageProvider";
 export { useLanguage } from "./useLanguage";

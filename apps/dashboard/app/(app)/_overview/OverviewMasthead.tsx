@@ -7,9 +7,9 @@ import { RefreshButton } from "@/components/editorial/RefreshButton";
 // title, a live Amman dateline + pulse, and the refresh action. Date strings are
 // pre-formatted server-side (one per language) so there's no hydration drift;
 // we select by the live `lang` here.
-export function OverviewMasthead({ date }: { date: { ar: string; en: string } }) {
+export function OverviewMasthead({ date }: { date: { ar: string; en: string; de: string } }) {
   const { lang, t } = useLanguage();
-  const dateLabel = lang === "ar" ? date.ar : date.en;
+  const dateLabel = lang === "ar" ? date.ar : lang === "de" ? date.de : date.en;
 
   return (
     <header className="animate-reveal relative mb-9">

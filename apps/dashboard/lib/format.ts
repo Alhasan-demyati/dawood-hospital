@@ -47,7 +47,7 @@ export function formatArabicDateTime(d: Date | string | number, tz: string = DEF
 }
 
 /** Format a Jordan E.164 number for display (grouped). Western digits. */
-export function formatPhoneE164(p: string, locale: "ar" | "en" = "ar"): string {
+export function formatPhoneE164(p: string, locale: "ar" | "en" | "de" = "ar"): string {
   void locale; // phone digits stay Western in both languages (identifier)
   const digits = (p || "").replace(/[^\d]/g, "");
   if (!digits) return p || "";

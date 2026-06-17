@@ -8,8 +8,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { dict, type TranslationKey } from "./dictionary";
+import { dict, LANGS, type TranslationKey } from "./dictionary";
 import { dirFor, type Lang, type LanguageContextValue } from "./types";
+
+const isLang = (v: unknown): v is Lang => LANGS.includes(v as Lang);
 
 export const LanguageContext = createContext<LanguageContextValue | null>(null);
 
@@ -30,7 +32,7 @@ export function LanguageProvider({
   // off the correct lang.
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored === "ar" || stored === "en") {
+    if (isLang(stored)) {
       setLangState(stored);
       document.documentElement.setAttribute("lang", stored);
       document.documentElement.setAttribute("dir", dirFor(stored));
@@ -44,9 +46,11 @@ export function LanguageProvider({
     document.documentElement.setAttribute("dir", dirFor(next));
   }, []);
 
+  // Cycle through every supported locale in dictionary order (ar → en → de → ar).
   const toggleLang = useCallback(() => {
     setLangState((prev) => {
-      const next: Lang = prev === "ar" ? "en" : "ar";
+      const idx = LANGS.indexOf(prev);
+      const next: Lang = LANGS[(idx + 1) % LANGS.length];
       window.localStorage.setItem(STORAGE_KEY, next);
       document.documentElement.setAttribute("lang", next);
       document.documentElement.setAttribute("dir", dirFor(next));
