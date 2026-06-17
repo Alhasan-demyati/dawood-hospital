@@ -17,6 +17,10 @@ const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 export function getSupabaseServer() {
   const cookieStore = cookies();
   return createServerClient(URL, ANON, {
+    global: {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(input, { ...init, cache: "no-store" }),
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -43,5 +47,12 @@ export function getSupabaseServer() {
 export function getSupabaseService() {
   return createClient(URL, SERVICE_ROLE, {
     auth: { persistSession: false, autoRefreshToken: false },
+    // Live operational dashboard: never serve stale rows from Next's Data Cache.
+    // Force every service-role read to hit Postgres fresh (e.g. a deleted admin
+    // must disappear immediately, not after a cache TTL).
+    global: {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(input, { ...init, cache: "no-store" }),
+    },
   });
 }

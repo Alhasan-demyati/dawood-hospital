@@ -177,6 +177,7 @@ export type VisitListItem = {
   specialty_name_ar: string;
   visit_type: string;
   patient_id: string;
+  patient_name: string | null;
   patient_phone_masked: string;
   status: "scheduled" | "checked_in" | "in_room" | "discharged" | "cancelled" | "no_show";
   created_at: string;
@@ -188,6 +189,8 @@ export type VisitDetail = VisitListItem & {
 };
 function mapVisit(r: any): VisitListItem {
   const vt = one<any>(r.visit_types);
+  const p = one<any>(r.patients);
+  const patientName = p ? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() : "";
   return {
     id: r.id,
     booking_reference: r.booking_reference,
@@ -196,7 +199,8 @@ function mapVisit(r: any): VisitListItem {
     specialty_name_ar: one<any>(r.specialties)?.name_ar ?? "",
     visit_type: vt?.name_ar ?? vt?.code ?? "",
     patient_id: r.patient_id,
-    patient_phone_masked: maskPhone(one<any>(r.patients)?.phone_e164 ?? ""),
+    patient_name: patientName || null,
+    patient_phone_masked: maskPhone(p?.phone_e164 ?? ""),
     status: r.status,
     created_at: r.created_at,
   };
@@ -219,7 +223,7 @@ export async function listVisits(filters: {
     .from("visits")
     .select(
       `id, booking_reference, scheduled_start, specialty_id, visit_type_id, patient_id, status, created_at,
-       specialties(name_ar), visit_types(name_ar, code), patients${join}(phone_e164)`,
+       specialties(name_ar), visit_types(name_ar, code), patients${join}(first_name, last_name, phone_e164)`,
     )
     .order("scheduled_start", { ascending: filters.order === "asc" })
     .range(offset, offset + limit - 1);
@@ -238,7 +242,7 @@ export async function getVisit(id: string): Promise<VisitDetail | null> {
     .from("visits")
     .select(
       `id, booking_reference, scheduled_start, specialty_id, visit_type_id, patient_id, status, created_at, notes,
-       specialties(name_ar), visit_types(name_ar, code), patients(phone_e164),
+       specialties(name_ar), visit_types(name_ar, code), patients(first_name, last_name, phone_e164),
        visit_intake(chief_complaint, suggested_specialty_id)`,
     )
     .eq("id", id)

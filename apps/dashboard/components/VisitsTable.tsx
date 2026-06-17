@@ -32,6 +32,7 @@ export function VisitsTable({ rows }: { rows: VisitListItem[] }) {
           {/* recessed header well */}
           <tr className="t-eyebrow border-b border-hairline bg-surface-3 text-text-faint">
             <th className="px-3.5 py-2.5 text-start font-medium">{t("col_booking_ref")}</th>
+            <th className="px-3.5 py-2.5 text-start font-medium">{t("col_patient_name")}</th>
             <th className="px-3.5 py-2.5 text-start font-medium">{t("col_scheduled_start")}</th>
             <th className="px-3.5 py-2.5 text-start font-medium">{t("col_specialty")}</th>
             <th className="px-3.5 py-2.5 text-start font-medium">{t("col_visit_type")}</th>
@@ -48,6 +49,7 @@ export function VisitsTable({ rows }: { rows: VisitListItem[] }) {
             >
               {/* booking ref stays Western digits, dir-safe */}
               <td className="px-3.5 py-2.5 font-medium tabular-nums text-text-primary" dir="ltr">{formatBookingReference(r.booking_reference)}</td>
+              <td className="px-3.5 py-2.5 text-text-primary">{r.patient_name || "—"}</td>
               <td className="px-3.5 py-2.5 text-text-faint">{formatArabicDateTime(r.scheduled_start)}</td>
               <td className="px-3.5 py-2.5 text-text-primary">{r.specialty_name_ar}</td>
               <td className="px-3.5 py-2.5 text-text-muted">{r.visit_type}</td>
