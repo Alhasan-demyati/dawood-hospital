@@ -102,11 +102,11 @@ export function CallDetailView({
                 {convo.caller_phone_masked}
               </Link>
             ) : (
-              "—"
+              t("call_channel_web")
             )
           }
         />
-        <Meta label={t("col_patient_name")} value={convo.patient_name || "—"} />
+        <Meta label={t("col_patient_name")} value={convo.patient_name || t("caller_guest")} />
         <Meta label={t("call_detail_language")} value={<span dir="ltr">{convo.language}</span>} />
         <div className="ms-auto">
           {live ? (

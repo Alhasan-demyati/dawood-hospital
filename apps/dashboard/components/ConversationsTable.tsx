@@ -100,8 +100,16 @@ export function ConversationsTable({
                   <span className="t-caption text-text-faint">{formatDateTime(r.started_at, lang)}</span>
                 </Link>
               </td>
-              <td className="px-3 py-2.5 text-text-muted" dir="ltr">{r.caller_phone_masked || "—"}</td>
-              <td className="px-3 py-2.5 text-text-primary">{r.patient_name || "—"}</td>
+              <td className="px-3 py-2.5 text-text-muted">
+                {r.caller_phone_masked ? (
+                  <span dir="ltr">{r.caller_phone_masked}</span>
+                ) : (
+                  <span className="text-text-faint">{t("call_channel_web")}</span>
+                )}
+              </td>
+              <td className="px-3 py-2.5 text-text-primary">
+                {r.patient_name || <span className="text-text-faint">{t("caller_guest")}</span>}
+              </td>
               <td className="px-3 py-2.5 tabular-nums text-text-muted">{formatDurationMMSS(r.duration_seconds, ar)}</td>
               <td className="px-3 py-2.5">
                 {r.outcome ? (

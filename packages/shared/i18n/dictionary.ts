@@ -108,6 +108,8 @@ export const dict = {
     call_detail_title: "تفاصيل المكالمة",
     live_now: "مباشر",
     handover_customer_data: "بيانات المتصل",
+    call_channel_web: "ويب",
+    caller_guest: "زائر",
     // ---- Visits --------------------------------------------------------
     visits_page_title: "الزيارات",
     visits_filter_specialty: "العيادة",
@@ -313,6 +315,8 @@ export const dict = {
     call_detail_title: "Call details",
     live_now: "Live",
     handover_customer_data: "Caller data",
+    call_channel_web: "Web",
+    caller_guest: "Guest",
     // ---- Visits --------------------------------------------------------
     visits_page_title: "Visits",
     visits_filter_specialty: "Specialty",
@@ -517,6 +521,8 @@ export const dict = {
     call_detail_title: "Anrufdetails",
     live_now: "Live",
     handover_customer_data: "Anruferdaten",
+    call_channel_web: "Web",
+    caller_guest: "Gast",
     // ---- Visits --------------------------------------------------------
     visits_page_title: "Besuche",
     visits_filter_specialty: "Fachgebiet",
